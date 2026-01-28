@@ -18,7 +18,7 @@ export async function onRequest(context) {
   try {
     const supabase = createSupabaseClient(env);
     const body = await request.json();
-    const { email, playerId } = body;
+    const { email, playerId, returnUrl } = body;
 
     // Validate email
     if (!email || !email.includes('@')) {
@@ -26,6 +26,21 @@ export async function onRequest(context) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate returnUrl if provided (must be same origin)
+    let validatedReturnUrl = null;
+    if (returnUrl) {
+      try {
+        const appUrl = new URL(env.APP_URL || 'http://localhost:8788');
+        const returnUrlObj = new URL(returnUrl);
+        // Only allow same-origin return URLs
+        if (returnUrlObj.origin === appUrl.origin) {
+          validatedReturnUrl = returnUrl;
+        }
+      } catch {
+        // Invalid URL, ignore
+      }
+    }
 
     // Generate magic token
     const token = generateToken(32);
@@ -53,15 +68,22 @@ export async function onRequest(context) {
       throw new Error('Failed to create magic token');
     }
 
+    // Build the magic link with optional return URL
+    const verifyUrl = new URL(`${env.APP_URL || 'http://localhost:8788'}/api/auth/verify`);
+    verifyUrl.searchParams.set('token', token);
+    if (validatedReturnUrl) {
+      verifyUrl.searchParams.set('return_url', validatedReturnUrl);
+    }
+    const magicLink = verifyUrl.toString();
+
     // Send the magic link email
     try {
-      await sendMagicLinkEmail(normalizedEmail, token, env);
+      await sendMagicLinkEmail(normalizedEmail, token, env, validatedReturnUrl);
     } catch (emailError) {
       console.error('Email send error:', emailError);
 
       // For development: show the magic link in console and return it (keep the token)
       if (env.APP_URL?.includes('localhost')) {
-        const magicLink = `${env.APP_URL}/api/auth/verify?token=${token}`;
         console.log('DEV MODE - Magic link:', magicLink);
         return withCors(jsonResponse({
           success: true,

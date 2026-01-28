@@ -5,12 +5,27 @@ export async function onRequest(context) {
   const { env, request } = context;
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
+  const returnUrl = url.searchParams.get('return_url');
   const appUrl = env.APP_URL || 'http://localhost:8788';
 
   // Helper to redirect with error
   const errorRedirect = (message) => {
     return Response.redirect(`${appUrl}/?auth_error=${encodeURIComponent(message)}`, 302);
   };
+
+  // Validate return URL if provided (must be same origin)
+  let validatedReturnUrl = null;
+  if (returnUrl) {
+    try {
+      const appUrlObj = new URL(appUrl);
+      const returnUrlObj = new URL(returnUrl);
+      if (returnUrlObj.origin === appUrlObj.origin) {
+        validatedReturnUrl = returnUrl;
+      }
+    } catch {
+      // Invalid URL, ignore
+    }
+  }
 
   if (!token) {
     return errorRedirect('Invalid link');
@@ -120,11 +135,21 @@ export async function onRequest(context) {
     console.log('Verify success - Player:', player.id, player.display_name);
     console.log('Setting cookie:', cookie.substring(0, 50) + '...');
 
-    // Redirect to profile with success
+    // Redirect to return URL (if valid) or profile page
+    let redirectUrl;
+    if (validatedReturnUrl) {
+      // Add auth_success to return URL
+      const returnUrlObj = new URL(validatedReturnUrl);
+      returnUrlObj.searchParams.set('auth_success', '1');
+      redirectUrl = returnUrlObj.toString();
+    } else {
+      redirectUrl = `${appUrl}/profile.html?auth_success=1`;
+    }
+
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${appUrl}/profile.html?auth_success=1`,
+        'Location': redirectUrl,
         'Set-Cookie': cookie,
       },
     });

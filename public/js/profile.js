@@ -44,6 +44,9 @@ async function init() {
       viewingPlayerId === localStorage.getItem('neutronium_guest_id');
   }
 
+  // Set up event listeners (do this early so buttons work)
+  setupEventListeners();
+
   // If still no player ID, show login prompt
   if (!viewingPlayerId) {
     showGuestPrompt();
@@ -52,9 +55,6 @@ async function init() {
 
   // Load profile data
   await loadProfile();
-
-  // Set up event listeners
-  setupEventListeners();
 }
 
 /**
@@ -175,7 +175,7 @@ function renderProfile(data) {
   document.getElementById('stat-total-nn').textContent = stats.totalBestNn || 0;
   document.getElementById('stat-games').textContent = stats.totalGames || 0;
   document.getElementById('stat-levels').textContent = stats.highestLevel || 0;
-  document.getElementById('stat-race').textContent = stats.favoriteRace || '-';
+  document.getElementById('stat-race').textContent = stats.favoriteColor || '-';
 
   // Progress Journal Grid
   renderJournalGrid(progressJournal);
@@ -244,14 +244,39 @@ function renderRecentSessions(sessions) {
  * Send magic link from login form
  */
 async function sendMagicLinkFromLogin() {
-  const email = document.getElementById('login-email')?.value.trim();
+  const emailInput = document.getElementById('login-email');
+  const email = emailInput?.value.trim();
   if (!email) {
     alert('Please enter your email');
     return;
   }
 
-  await sendMagicLink(email);
-  document.getElementById('magic-link-sent').classList.remove('hidden');
+  if (!email.includes('@') || !email.includes('.')) {
+    alert('Please enter a valid email address');
+    return;
+  }
+
+  const btn = document.getElementById('btn-send-magic-link');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    const result = await window.NeutroniumAuth?.sendMagicLink(email, null, null);
+    if (result?.success) {
+      document.getElementById('magic-link-sent').classList.remove('hidden');
+      btn.textContent = 'Link Sent!';
+      emailInput.disabled = true;
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Send Magic Link';
+      alert(result?.error || 'Failed to send magic link. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error sending magic link:', error);
+    btn.disabled = false;
+    btn.textContent = 'Send Magic Link';
+    alert('Network error. Please try again.');
+  }
 }
 
 /**
@@ -272,30 +297,36 @@ function hideUpgradeModal() {
  * Send magic link from upgrade modal
  */
 async function sendMagicLinkFromUpgrade() {
-  const email = document.getElementById('upgrade-email')?.value.trim();
+  const emailInput = document.getElementById('upgrade-email');
+  const email = emailInput?.value.trim();
   if (!email) {
     alert('Please enter your email');
     return;
   }
 
-  await sendMagicLink(email, viewingPlayerId);
-  hideUpgradeModal();
-  alert('Check your email! Click the link to save your progress.');
-}
+  if (!email.includes('@') || !email.includes('.')) {
+    alert('Please enter a valid email address');
+    return;
+  }
 
-/**
- * Send magic link to email
- * @param {string} email - Email address
- * @param {string|null} playerId - Optional player ID to link
- */
-async function sendMagicLink(email, playerId = null) {
+  const btn = document.getElementById('btn-confirm-upgrade');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
   try {
-    const result = await window.NeutroniumAuth?.sendMagicLink(email, playerId);
-    if (!result?.success) {
-      alert(result?.error || 'Failed to send magic link');
+    const result = await window.NeutroniumAuth?.sendMagicLink(email, viewingPlayerId, null);
+    if (result?.success) {
+      hideUpgradeModal();
+      alert('Check your email! Click the link to save your progress.');
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Send Link';
+      alert(result?.error || 'Failed to send magic link. Please try again.');
     }
   } catch (error) {
     console.error('Error sending magic link:', error);
+    btn.disabled = false;
+    btn.textContent = 'Send Link';
     alert('Network error. Please try again.');
   }
 }

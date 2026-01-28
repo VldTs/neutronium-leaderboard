@@ -54,6 +54,31 @@
 
     <!-- Session Content -->
     <div id="session-content" class="hidden">
+      <!-- Guest Sign In Banner (shown for guests) -->
+      <div id="guest-signin-banner" class="card mt-lg hidden" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1)); border-color: var(--color-accent);">
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <h4 style="margin: 0 0 0.25rem 0;">Playing as Guest</h4>
+            <p class="text-muted" style="margin: 0; font-size: 0.875rem;">Sign in to unlock higher levels and save your progress</p>
+          </div>
+          <button type="button" id="btn-session-signin" class="btn btn-primary">
+            <span>Sign In</span>
+            <span class="btn-icon">&#8594;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Level Changed Banner (shown when level was adjusted) -->
+      <div id="level-changed-banner" class="card mt-lg hidden" style="background: rgba(245, 158, 11, 0.1); border-color: #f59e0b;">
+        <div class="alert alert-warning" style="margin: 0; padding: 0; background: none; border: none;">
+          <span class="alert-icon">&#128276;</span>
+          <div>
+            <strong>Level Adjusted</strong>
+            <p id="level-changed-message" style="margin: 0;">The session level was adjusted to match all players' progress.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Players List -->
       <section class="card mt-lg">
         <h3 class="card-title mb-md">Players</h3>
@@ -97,6 +122,36 @@
           Vote to End Game
         </button>
       </section>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div id="signin-modal" class="modal-overlay">
+      <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+          <h3 class="modal-title">Sign In</h3>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-lg">Enter your email to receive a magic link. After signing in, you'll return to this session with your unlocked levels.</p>
+          <div class="form-group">
+            <label class="form-label" for="signin-email">
+              <span class="form-label-icon">&#9993;</span>
+              Email
+            </label>
+            <input type="email" id="signin-email" class="form-input" placeholder="your@email.com">
+          </div>
+          <div id="signin-success" class="alert alert-success hidden">
+            <span class="alert-icon">&#10003;</span>
+            <div>
+              <strong>Check your email!</strong>
+              <p>Click the magic link to sign in. You'll be redirected back to this session.</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-lg" style="display: flex; gap: 1rem;">
+          <button type="button" id="btn-cancel-signin" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+          <button type="button" id="btn-send-signin-link" class="btn btn-primary" style="flex: 1;">Send Magic Link</button>
+        </div>
+      </div>
     </div>
 
     <!-- Results Modal -->

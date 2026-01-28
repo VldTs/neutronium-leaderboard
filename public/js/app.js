@@ -15,6 +15,8 @@ const boxError = document.getElementById('box-error');
 // State
 let currentBoxId = null;
 let activeSession = null;
+let currentUser = null;
+let playerMaxLevel = 1;
 
 /**
  * Initialize the app
@@ -22,6 +24,9 @@ let activeSession = null;
 async function init() {
   // Check for active session first
   await checkActiveSession();
+
+  // Check if user is authenticated and get their progress
+  await loadUserProgress();
 
   // Check for box ID in URL params
   const urlParams = new URLSearchParams(window.location.search);
@@ -32,20 +37,127 @@ async function init() {
     await checkBox(boxParam);
   }
 
-  // Pre-fill player name if stored
-  const storedName = window.NeutroniumAuth?.getStoredPlayerName();
-  if (storedName) {
+  // Pre-fill player name - use authenticated user's name from database, or fallback to stored name
+  const playerName = currentUser?.displayName || window.NeutroniumAuth?.getStoredPlayerName();
+  if (playerName) {
     const playerNameInput = document.getElementById('player-name');
     const joinPlayerNameInput = document.getElementById('join-player-name');
-    if (playerNameInput) playerNameInput.value = storedName;
-    if (joinPlayerNameInput) joinPlayerNameInput.value = storedName;
+    if (playerNameInput) playerNameInput.value = playerName;
+    if (joinPlayerNameInput) joinPlayerNameInput.value = playerName;
   }
+
+  // Update level selector based on user progress
+  updateLevelSelector();
 
   // Load leaderboard preview
   loadLeaderboardPreview();
 
   // Set up event listeners
   setupEventListeners();
+}
+
+/**
+ * Load current user and their progress
+ */
+async function loadUserProgress() {
+  try {
+    // Check if user is authenticated
+    currentUser = await window.NeutroniumAuth?.getCurrentUser();
+
+    if (currentUser) {
+      // Fetch player's progress to determine max level
+      const response = await fetch(`/api/player/${currentUser.id}`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Find the highest level they've completed
+        const progress = data.progress || [];
+        if (progress.length > 0) {
+          const maxCompletedLevel = Math.max(...progress.map(p => p.level));
+          // Allow them to play up to max completed + 1 (next level)
+          playerMaxLevel = Math.min(maxCompletedLevel + 1, 13);
+        } else {
+          playerMaxLevel = 1;
+        }
+      }
+    } else {
+      // Guest - only level 1
+      playerMaxLevel = 1;
+    }
+  } catch (error) {
+    console.error('Error loading user progress:', error);
+    playerMaxLevel = 1;
+  }
+}
+
+/**
+ * Update level selector based on player progress
+ */
+function updateLevelSelector() {
+  const levelSelect = document.getElementById('universe-level');
+  if (!levelSelect) return;
+
+  const isGuest = !currentUser;
+
+  // Clear existing options
+  levelSelect.innerHTML = '';
+
+  if (isGuest) {
+    // Guest: only level 1
+    const option = document.createElement('option');
+    option.value = '1';
+    option.textContent = 'Level 1 - Basic';
+    levelSelect.appendChild(option);
+
+    // Add info text
+    const hint = document.querySelector('#start-session .form-group:has(#universe-level) .form-hint');
+    if (!hint) {
+      const formGroup = levelSelect.closest('.form-group');
+      if (formGroup) {
+        const hintEl = document.createElement('p');
+        hintEl.className = 'form-hint';
+        hintEl.innerHTML = '<a href="/profile.html" style="color: var(--color-accent);">Sign in</a> to unlock more levels';
+        formGroup.appendChild(hintEl);
+      }
+    }
+  } else {
+    // Authenticated: levels 1 to maxLevel
+    for (let i = 1; i <= playerMaxLevel; i++) {
+      const option = document.createElement('option');
+      option.value = i.toString();
+      if (i === 1) {
+        option.textContent = 'Level 1 - Basic';
+      } else if (i === 13) {
+        option.textContent = 'Level 13 - Complete';
+      } else {
+        option.textContent = `Level ${i}`;
+      }
+      levelSelect.appendChild(option);
+    }
+
+    // Show locked levels indicator if not all unlocked
+    if (playerMaxLevel < 13) {
+      const formGroup = levelSelect.closest('.form-group');
+      if (formGroup) {
+        let hintEl = formGroup.querySelector('.form-hint');
+        if (!hintEl) {
+          hintEl = document.createElement('p');
+          hintEl.className = 'form-hint';
+          formGroup.appendChild(hintEl);
+        }
+        hintEl.textContent = `Complete Level ${playerMaxLevel} to unlock Level ${playerMaxLevel + 1}`;
+      }
+    }
+  }
+
+  // Preselect the highest available level for returning players, level 1 for new/guests
+  if (currentUser && playerMaxLevel > 1) {
+    levelSelect.value = playerMaxLevel.toString();
+  } else {
+    levelSelect.value = '1';
+  }
 }
 
 /**
@@ -253,14 +365,61 @@ function showBoxFound(data) {
   if (data.activeSession) {
     // Active session exists
     activeSession = data.activeSession;
-    statusText.textContent = 'Join the game in progress!';
+
+    // Handle both snake_case (API) and camelCase
+    const sessionLevel = data.activeSession.universe_level || data.activeSession.universeLevel;
+    document.getElementById('active-level').textContent = sessionLevel;
+    document.getElementById('active-players').textContent = data.activeSession.playerCount || '?';
+
+    const isGuest = !currentUser;
+    // Level only adjusts if player's max level is LOWER than current session level
+    const levelWillAdjust = playerMaxLevel < sessionLevel;
+    const adjustedLevel = levelWillAdjust ? playerMaxLevel : sessionLevel;
+
+    // Always allow joining - level will auto-adjust only if needed
+    statusText.textContent = levelWillAdjust
+      ? `Join the game! Level will adjust to ${adjustedLevel}`
+      : 'Join the game in progress!';
     startSession.classList.add('hidden');
     joinSession.classList.remove('hidden');
 
-    // Handle both snake_case (API) and camelCase
-    const level = data.activeSession.universe_level || data.activeSession.universeLevel;
-    document.getElementById('active-level').textContent = level;
-    document.getElementById('active-players').textContent = data.activeSession.playerCount || '?';
+    // Show level adjustment info if needed
+    let warning = document.getElementById('level-warning');
+    if (levelWillAdjust) {
+      if (!warning) {
+        warning = document.createElement('div');
+        warning.id = 'level-warning';
+        warning.className = 'level-adjustment-info mt-lg';
+        boxFound.querySelector('.alert-success').after(warning);
+      }
+
+      if (isGuest) {
+        warning.innerHTML = `
+          <div class="alert alert-warning" style="margin-bottom: 0;">
+            <span class="alert-icon">&#128276;</span>
+            <div>
+              <strong>Level Will Adjust</strong>
+              <p>This game is at Level ${sessionLevel}. When you join, it will adjust to Level ${adjustedLevel} (your max level as a guest).</p>
+              <p style="margin-top: 0.5rem; font-size: 0.85rem;">
+                <a href="/profile.html" style="color: var(--color-accent);">Sign in</a> to use your unlocked levels instead.
+              </p>
+            </div>
+          </div>
+        `;
+      } else {
+        warning.innerHTML = `
+          <div class="alert alert-warning" style="margin-bottom: 0;">
+            <span class="alert-icon">&#128276;</span>
+            <div>
+              <strong>Level Will Adjust</strong>
+              <p>This game is at Level ${sessionLevel}. When you join, it will adjust to Level ${adjustedLevel} (your max unlocked level).</p>
+            </div>
+          </div>
+        `;
+      }
+    } else if (warning) {
+      warning.remove();
+    }
 
     // Disable taken colors
     const takenColors = data.activeSession.takenColors || [];
@@ -277,6 +436,10 @@ function showBoxFound(data) {
     statusText.textContent = 'Set up your player and start!';
     startSession.classList.remove('hidden');
     joinSession.classList.add('hidden');
+
+    // Remove any level warning
+    const existingWarning = document.getElementById('level-warning');
+    if (existingWarning) existingWarning.remove();
 
     // Reset all colors to available for new session
     updateColorAvailability('#start-session', []);
@@ -304,6 +467,62 @@ function updateColorAvailability(containerSelector, takenColors) {
 }
 
 /**
+ * Show start session form for Level 1 (for guests)
+ */
+function showStartSessionForLevel1() {
+  showStartSessionForLevel(1);
+}
+
+/**
+ * Show start session form for a specific level
+ * @param {number} level - The level to pre-select
+ */
+function showStartSessionForLevel(level) {
+  // Hide level warning
+  const warning = document.getElementById('level-warning');
+  if (warning) warning.classList.add('hidden');
+
+  // Show start session form
+  const startSession = document.getElementById('start-session');
+  const joinSession = document.getElementById('join-session');
+  startSession.classList.remove('hidden');
+  joinSession.classList.add('hidden');
+
+  // Update status text
+  const statusText = document.getElementById('box-status-text');
+  statusText.textContent = 'Set up your player and start!';
+
+  // Reset all colors to available for new session
+  updateColorAvailability('#start-session', []);
+
+  // Pre-select the level
+  const levelSelect = document.getElementById('universe-level');
+  if (levelSelect) {
+    // Make sure the level option exists
+    let optionExists = false;
+    for (let i = 0; i < levelSelect.options.length; i++) {
+      if (levelSelect.options[i].value === level.toString()) {
+        optionExists = true;
+        break;
+      }
+    }
+
+    if (optionExists) {
+      levelSelect.value = level.toString();
+    } else {
+      // For guests, level 1 should always be available
+      levelSelect.value = '1';
+    }
+  }
+
+  // Restore saved color if available
+  const savedColor = localStorage.getItem('neutronium_player_color');
+  if (savedColor) {
+    selectColor(savedColor, 'player-color', '#start-session');
+  }
+}
+
+/**
  * Start a new session
  */
 async function startSession() {
@@ -327,6 +546,9 @@ async function startSession() {
   showLoading(true);
 
   try {
+    // Use authenticated user's ID if available, otherwise use guest ID
+    const playerId = currentUser?.id || window.NeutroniumAuth?.getOrCreateGuestId();
+
     const response = await fetch('/api/session/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -335,7 +557,7 @@ async function startSession() {
         universeLevel,
         playerName,
         playerColor,
-        playerId: window.NeutroniumAuth?.getOrCreateGuestId(),
+        playerId,
       }),
       credentials: 'include',
     });
@@ -391,12 +613,23 @@ async function joinSession() {
     return;
   }
 
+  // Note: Level will auto-adjust when joining, so no level check needed
+
   // Store player name
   window.NeutroniumAuth?.setStoredPlayerName(playerName);
 
   showLoading(true);
 
   try {
+    // Use authenticated user's ID if available, otherwise use guest ID
+    const playerId = currentUser?.id || window.NeutroniumAuth?.getOrCreateGuestId();
+    console.log('JOIN SESSION DEBUG:', {
+      currentUser,
+      playerId,
+      isAuthenticated: !!currentUser,
+      sessionLevel: activeSession?.universe_level || activeSession?.universeLevel,
+    });
+
     const response = await fetch('/api/session/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -404,7 +637,7 @@ async function joinSession() {
         sessionId: activeSession.id,
         playerName,
         playerColor,
-        playerId: window.NeutroniumAuth?.getOrCreateGuestId(),
+        playerId,
       }),
       credentials: 'include',
     });

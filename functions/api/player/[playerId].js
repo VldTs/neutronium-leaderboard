@@ -74,6 +74,16 @@ export async function onRequest(context) {
       }
     }
 
+    // Count total games played (separate query to get actual count)
+    const { count: totalGames, error: countError } = await supabase
+      .from('session_players')
+      .select('*', { count: 'exact', head: true })
+      .eq('player_id', playerId);
+
+    if (countError) {
+      throw countError;
+    }
+
     // Get recent sessions
     const { data: recentSessions, error: sessionsError } = await supabase
       .from('session_players')
@@ -104,9 +114,6 @@ export async function onRequest(context) {
       endedAt: sp.sessions.ended_at,
     }));
 
-    // Count total games played
-    const gamesPlayed = recentSessions?.length || 0;
-
     // Get favorite color (most used)
     const colorCounts = {};
     for (const sp of recentSessions || []) {
@@ -127,7 +134,7 @@ export async function onRequest(context) {
         totalBestNn,
         highestLevel,
         levelsCompleted,
-        gamesPlayed,
+        totalGames: totalGames || 0,
         globalRank,
         favoriteColor,
       },

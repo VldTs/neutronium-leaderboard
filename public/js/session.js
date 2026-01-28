@@ -9,12 +9,15 @@ const sessionNotFound = document.getElementById('session-not-found');
 const sessionContent = document.getElementById('session-content');
 const playersList = document.getElementById('players-list');
 const resultsModal = document.getElementById('results-modal');
+const signinModal = document.getElementById('signin-modal');
 
 // State
 let sessionId = null;
 let currentPlayerId = null;
 let sessionData = null;
 let pollInterval = null;
+let isGuest = true;
+let previousSessionLevel = null;
 
 /**
  * Initialize the session page
@@ -29,11 +32,35 @@ async function init() {
     return;
   }
 
-  // Get current player ID
-  currentPlayerId = window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
+  // Check if returning from sign-in (either via signed_in or auth_success param)
+  const returnFromSignIn = urlParams.get('signed_in') === '1' || urlParams.get('auth_success') === '1';
+  if (returnFromSignIn) {
+    // Clean URL
+    const cleanUrl = new URL(window.location);
+    cleanUrl.searchParams.delete('signed_in');
+    cleanUrl.searchParams.delete('auth_success');
+    window.history.replaceState({}, '', cleanUrl);
+  }
+
+  // Get current user status
+  const currentUser = await window.NeutroniumAuth?.getCurrentUser();
+  isGuest = !currentUser;
+
+  // Get current player ID - use authenticated user ID if available
+  const oldPlayerId = currentPlayerId;
+  currentPlayerId = currentUser?.id || window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
+
+  // If returning from sign-in, rejoin session with authenticated player and recalculate level
+  if (returnFromSignIn && currentUser) {
+    console.log('Returning from sign-in, rejoining session with authenticated player:', currentUser.id);
+    await rejoinSessionAsAuthenticatedPlayer(currentUser, oldPlayerId);
+  }
 
   // Load session data
   await loadSession();
+
+  // Show guest sign-in banner if applicable
+  updateGuestBanner();
 
   // Set up event listeners
   setupEventListeners();
@@ -43,11 +70,203 @@ async function init() {
 }
 
 /**
+ * Update guest sign-in banner visibility
+ */
+function updateGuestBanner() {
+  const banner = document.getElementById('guest-signin-banner');
+  if (banner) {
+    banner.classList.toggle('hidden', !isGuest);
+  }
+}
+
+/**
+ * Rejoin session as authenticated player after sign-in
+ * This adds the authenticated player to the session and recalculates the level
+ */
+async function rejoinSessionAsAuthenticatedPlayer(currentUser, oldPlayerId) {
+  try {
+    // Use the authenticated user's name from database, fallback to stored name
+    const playerName = currentUser.displayName || window.NeutroniumAuth?.getStoredPlayerName() || 'Player';
+    const playerColor = localStorage.getItem('neutronium_player_color') || null;
+
+    console.log('Rejoining session with authenticated player:', {
+      sessionId,
+      playerId: currentUser.id,
+      oldPlayerId,
+      playerName,
+    });
+
+    // Join the session with the authenticated player ID
+    // Pass the old player ID so the server can remove the old guest entry
+    const response = await fetch('/api/session/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        playerName,
+        playerColor,
+        playerId: currentUser.id,
+        replacePlayerId: oldPlayerId !== currentUser.id ? oldPlayerId : undefined,
+      }),
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+
+      // Update the stored player ID
+      window.NeutroniumAuth?.setPlayerId(currentUser.id);
+
+      // Check if level changed
+      if (data.levelChanged) {
+        showLevelChangedBanner(data.previousLevel, data.newLevel);
+      }
+
+      // Update guest banner visibility
+      isGuest = false;
+      updateGuestBanner();
+
+      console.log('Rejoined session successfully:', data);
+    } else {
+      const errorData = await response.json();
+      console.error('Failed to rejoin session:', errorData);
+    }
+  } catch (error) {
+    console.error('Error rejoining session as authenticated player:', error);
+  }
+}
+
+/**
+ * Recalculate session level after sign-in
+ */
+async function recalculateSessionLevel() {
+  try {
+    const response = await fetch('/api/session/recalculate-level', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        playerId: currentPlayerId,
+      }),
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.levelChanged) {
+        // Show level changed banner
+        showLevelChangedBanner(data.previousLevel, data.newLevel);
+      }
+    }
+  } catch (error) {
+    console.error('Error recalculating session level:', error);
+  }
+}
+
+/**
+ * Show the level changed banner
+ */
+function showLevelChangedBanner(previousLevel, newLevel) {
+  const banner = document.getElementById('level-changed-banner');
+  const message = document.getElementById('level-changed-message');
+
+  if (banner && message) {
+    if (newLevel < previousLevel) {
+      message.textContent = `The session level was adjusted from Level ${previousLevel} to Level ${newLevel} to match all players' progress.`;
+    } else {
+      message.textContent = `The session level was updated to Level ${newLevel}.`;
+    }
+    banner.classList.remove('hidden');
+
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+      banner.classList.add('hidden');
+    }, 10000);
+  }
+}
+
+/**
  * Set up event listeners
  */
 function setupEventListeners() {
   document.getElementById('btn-submit-score')?.addEventListener('click', submitScore);
   document.getElementById('btn-end-game')?.addEventListener('click', voteEndGame);
+
+  // Sign-in modal
+  document.getElementById('btn-session-signin')?.addEventListener('click', showSignInModal);
+  document.getElementById('btn-cancel-signin')?.addEventListener('click', hideSignInModal);
+  document.getElementById('btn-send-signin-link')?.addEventListener('click', sendSignInLink);
+
+  // Close modal on background click
+  signinModal?.addEventListener('click', (e) => {
+    if (e.target === signinModal) {
+      hideSignInModal();
+    }
+  });
+}
+
+/**
+ * Show sign-in modal
+ */
+function showSignInModal() {
+  signinModal?.classList.add('active');
+  document.getElementById('signin-email')?.focus();
+}
+
+/**
+ * Hide sign-in modal
+ */
+function hideSignInModal() {
+  signinModal?.classList.remove('active');
+  document.getElementById('signin-email').value = '';
+  document.getElementById('signin-success')?.classList.add('hidden');
+}
+
+/**
+ * Send sign-in magic link
+ */
+async function sendSignInLink() {
+  const emailInput = document.getElementById('signin-email');
+  const email = emailInput?.value.trim();
+
+  if (!email) {
+    alert('Please enter your email');
+    return;
+  }
+
+  if (!email.includes('@') || !email.includes('.')) {
+    alert('Please enter a valid email address');
+    return;
+  }
+
+  const btn = document.getElementById('btn-send-signin-link');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    // Include the return URL with session ID and signed_in flag
+    const returnUrl = `${window.location.origin}/session.html?id=${sessionId}&signed_in=1`;
+
+    const result = await window.NeutroniumAuth?.sendMagicLink(email, currentPlayerId, returnUrl);
+
+    if (result?.success) {
+      // Show success message
+      document.getElementById('signin-success')?.classList.remove('hidden');
+      btn.textContent = 'Link Sent!';
+
+      // Hide input
+      emailInput.closest('.form-group')?.classList.add('hidden');
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Send Magic Link';
+      alert(result?.error || 'Failed to send magic link');
+    }
+  } catch (error) {
+    console.error('Error sending magic link:', error);
+    btn.disabled = false;
+    btn.textContent = 'Send Magic Link';
+    alert('Network error. Please try again.');
+  }
 }
 
 /**
@@ -119,7 +338,7 @@ async function loadSession() {
 function transformApiResponse(apiData) {
   const { session, stats } = apiData;
 
-  return {
+  const newData = {
     id: session.id,
     boxId: session.box_id,
     universeLevel: session.universe_level,
@@ -145,6 +364,13 @@ function transformApiResponse(apiData) {
     },
     stats,
   };
+
+  // Check if level changed (during polling)
+  if (sessionData && sessionData.universeLevel !== newData.universeLevel) {
+    showLevelChangedBanner(sessionData.universeLevel, newData.universeLevel);
+  }
+
+  return newData;
 }
 
 /**

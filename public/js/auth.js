@@ -60,13 +60,14 @@ async function getCurrentUser() {
  * Send magic link to email
  * @param {string} email - Email address
  * @param {string|null} playerId - Optional player ID to link
+ * @param {string|null} returnUrl - Optional URL to redirect after sign in
  * @returns {Promise<Object>} Response data
  */
-async function sendMagicLink(email, playerId = null) {
+async function sendMagicLink(email, playerId = null, returnUrl = null) {
   const response = await fetch('/api/auth/magic-link', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, playerId }),
+    body: JSON.stringify({ email, playerId, returnUrl }),
     credentials: 'include',
   });
 
