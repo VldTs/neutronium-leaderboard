@@ -5,25 +5,20 @@ node_modules/
 .wrangler/
 .dev.vars
 
-# Environment files
+# Environment
 .env
 .env.local
 .env.*.local
-
-# Build outputs
-dist/
-.output/
 
 # IDE
 .idea/
 .vscode/
 *.swp
-*.swo
+
+# OS
 .DS_Store
+Thumbs.db
 
-# Logs
-*.log
-npm-debug.log*
-
-# Testing
-coverage/
+# Build
+dist/
+.cache/
