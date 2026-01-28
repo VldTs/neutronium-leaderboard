@@ -39,11 +39,8 @@ CREATE TABLE sessions (
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'pending_end', 'completed', 'abandoned')),
   host_player_id UUID REFERENCES players(id),
   started_at TIMESTAMPTZ DEFAULT NOW(),
-  ended_at TIMESTAMPTZ,
-
-  -- Enforce: only 1 active session per box
-  CONSTRAINT one_active_session_per_box UNIQUE (box_id, status)
-    DEFERRABLE INITIALLY DEFERRED
+  ended_at TIMESTAMPTZ
+  -- Note: Only one active session per box is enforced by idx_active_session_per_box below
 );
 
 -- Partial index for active sessions lookup

@@ -79,6 +79,21 @@ async function loadSession() {
 
     const apiData = await response.json();
 
+    // Check if session is completed and there's a next session
+    // This handles when another player submitted the last score
+    if (apiData.session?.status === 'completed' && apiData.nextSession) {
+      stopPolling();
+      showNextLevelTransition(apiData.nextSession);
+      return;
+    }
+
+    // Check if all 13 levels completed
+    if (apiData.session?.status === 'completed' && !apiData.nextSession && apiData.session?.universe_level === 13) {
+      stopPolling();
+      showGameComplete();
+      return;
+    }
+
     // Transform API response to expected format
     sessionData = transformApiResponse(apiData);
 
@@ -154,6 +169,11 @@ function renderSession() {
   // Render players
   renderPlayers();
 
+  // Calculate submission progress
+  const submittedCount = sessionData.players.filter(p => p.finalNn !== null).length;
+  const totalPlayers = sessionData.players.length;
+  renderSubmissionProgress(submittedCount, totalPlayers);
+
   // Update end votes
   if (sessionData.endVotes) {
     document.getElementById('end-votes').textContent =
@@ -184,8 +204,13 @@ function renderSession() {
     }
     if (myPlayer.finalNn !== null && myPlayer.finalNn !== undefined) {
       document.getElementById('my-final-nn').value = myPlayer.finalNn;
-      // Show submitted message
+      // Show submitted message and update button
       document.getElementById('score-submitted-msg')?.classList.remove('hidden');
+      const btn = document.getElementById('btn-submit-score');
+      if (btn) {
+        btn.textContent = 'Update Score';
+        btn.disabled = false;
+      }
     }
   }
 
@@ -193,6 +218,38 @@ function renderSession() {
   const scoreInput = document.getElementById('score-input');
   if (scoreInput) {
     scoreInput.classList.toggle('hidden', !myPlayer);
+  }
+}
+
+/**
+ * Render submission progress bar
+ */
+function renderSubmissionProgress(submitted, total) {
+  let progressContainer = document.getElementById('submission-progress');
+
+  // Create container if it doesn't exist
+  if (!progressContainer) {
+    const playersSection = playersList?.parentElement;
+    if (playersSection) {
+      progressContainer = document.createElement('div');
+      progressContainer.id = 'submission-progress';
+      progressContainer.className = 'submission-progress';
+      playersSection.insertBefore(progressContainer, playersList);
+    }
+  }
+
+  if (progressContainer) {
+    const percentage = total > 0 ? (submitted / total) * 100 : 0;
+    const allSubmitted = submitted === total && total > 0;
+
+    progressContainer.innerHTML = `
+      <div class="submission-progress-bar">
+        <div class="submission-progress-fill" style="width: ${percentage}%;"></div>
+      </div>
+      <span class="submission-progress-text ${allSubmitted ? 'text-success' : ''}">
+        ${submitted}/${total} ${allSubmitted ? '&#10003;' : ''}
+      </span>
+    `;
   }
 }
 
@@ -256,6 +313,10 @@ async function submitScore() {
     return;
   }
 
+  const btn = document.getElementById('btn-submit-score');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
   try {
     const response = await fetch('/api/session/submit-score', {
       method: 'POST',
@@ -275,28 +336,188 @@ async function submitScore() {
     if (response.ok) {
       // Show submitted message
       document.getElementById('score-submitted-msg')?.classList.remove('hidden');
-      // Refresh session data
-      await loadSession();
+      btn.textContent = 'Score Submitted';
+
+      // Check if all players submitted and we're moving to next level
+      if (data.allSubmitted && data.nextSession) {
+        // Stop polling and show transition message
+        stopPolling();
+        showNextLevelTransition(data.nextSession);
+      } else if (data.allSubmitted && !data.nextSession) {
+        // All 13 levels completed!
+        stopPolling();
+        showGameComplete();
+      } else {
+        // Update submission progress
+        updateSubmissionProgress(data.submittedCount, data.totalPlayers);
+        // Refresh session data
+        await loadSession();
+      }
     } else {
+      btn.disabled = false;
+      btn.textContent = 'Submit Score';
       alert(data.error || 'Failed to submit score');
     }
   } catch (error) {
     console.error('Error submitting score:', error);
+    btn.disabled = false;
+    btn.textContent = 'Submit Score';
     alert('Network error. Please try again.');
   }
+}
+
+/**
+ * Update submission progress display
+ */
+function updateSubmissionProgress(submitted, total) {
+  const msg = document.getElementById('score-submitted-msg');
+  if (msg) {
+    msg.textContent = `Score submitted! Waiting for other players (${submitted}/${total})`;
+    msg.classList.remove('hidden');
+  }
+}
+
+/**
+ * Show transition to next level
+ */
+function showNextLevelTransition(nextSession) {
+  const currentLevel = sessionData?.universeLevel || (nextSession.universeLevel - 1);
+  const currentBoxId = sessionData?.boxId || null;
+
+  // Store the new session
+  window.NeutroniumAuth?.setActiveSession({
+    id: nextSession.id,
+    box_id: currentBoxId,
+    universe_level: nextSession.universeLevel,
+  });
+
+  // Show transition modal
+  const modal = document.getElementById('results-modal');
+  const content = document.getElementById('results-content');
+
+  content.innerHTML = `
+    <div class="text-center">
+      <div class="next-level-icon">&#127881;</div>
+      <h2 class="mb-md">Level ${currentLevel} Complete!</h2>
+      <p class="text-muted mb-lg">All players submitted their scores. Moving to the next level...</p>
+      <div class="next-level-info">
+        <span class="next-level-badge">Next: Level ${nextSession.universeLevel}</span>
+      </div>
+      <p class="text-muted mt-lg">Redirecting in <span id="countdown">3</span> seconds...</p>
+    </div>
+  `;
+
+  modal.classList.add('active');
+
+  // Countdown and redirect
+  let countdown = 3;
+  const countdownEl = document.getElementById('countdown');
+  const interval = setInterval(() => {
+    countdown--;
+    if (countdownEl) countdownEl.textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(interval);
+      window.location.href = `/session.html?id=${nextSession.id}`;
+    }
+  }, 1000);
+}
+
+/**
+ * Show game complete (all 13 levels done)
+ */
+function showGameComplete() {
+  window.NeutroniumAuth?.clearActiveSession();
+
+  const modal = document.getElementById('results-modal');
+  const content = document.getElementById('results-content');
+
+  content.innerHTML = `
+    <div class="text-center">
+      <div class="next-level-icon">&#127942;</div>
+      <h2 class="mb-md">Congratulations!</h2>
+      <p class="text-muted mb-lg">You've completed all 13 universe levels!</p>
+    </div>
+
+    <div id="save-progress-prompt" class="card mt-lg">
+      <p class="mb-md">Save your progress to the leaderboard!</p>
+      <input type="email" id="save-email" class="form-input mb-md" placeholder="your@email.com">
+      <button type="button" id="btn-save-progress" class="btn btn-primary" style="width: 100%;">
+        Save Progress
+      </button>
+    </div>
+  `;
+
+  // Update modal buttons
+  const modalButtons = modal.querySelector('.mt-lg:last-child');
+  if (modalButtons && !modalButtons.id) {
+    modalButtons.innerHTML = `
+      <a href="/leaderboard.html" class="btn btn-primary" style="flex: 1;">View Leaderboard</a>
+      <a href="/" class="btn btn-secondary" style="flex: 1;">Home</a>
+    `;
+  }
+
+  // Set up save progress handler
+  setupSaveProgressHandler();
+
+  modal.classList.add('active');
+}
+
+/**
+ * Set up save progress button handler
+ */
+function setupSaveProgressHandler() {
+  document.getElementById('btn-save-progress')?.addEventListener('click', async () => {
+    const email = document.getElementById('save-email').value.trim();
+    if (!email) {
+      alert('Please enter your email');
+      return;
+    }
+
+    // Basic email validation
+    if (!email.includes('@') || !email.includes('.')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    const btn = document.getElementById('btn-save-progress');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const result = await window.NeutroniumAuth?.sendMagicLink(email, currentPlayerId);
+      if (result?.success) {
+        // Update player ID if returned
+        if (result.playerId) {
+          window.NeutroniumAuth?.setPlayerId(result.playerId);
+        }
+        document.getElementById('save-progress-prompt').innerHTML = `
+          <div class="alert alert-success">
+            <span class="alert-icon">&#10003;</span>
+            <div>
+              <strong>Progress Saved!</strong>
+              <p>${result.message || 'Your scores have been saved to the leaderboard.'}</p>
+              <p style="margin-top: 0.5rem; font-size: 0.875rem;">Email: <strong>${escapeHtml(email)}</strong></p>
+            </div>
+          </div>
+        `;
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Save Progress';
+        alert(result?.error || 'Failed to save progress');
+      }
+    } catch (error) {
+      console.error('Save progress error:', error);
+      btn.disabled = false;
+      btn.textContent = 'Save Progress';
+      alert('Network error. Please try again.');
+    }
+  });
 }
 
 /**
  * Vote to end the game
  */
 async function voteEndGame() {
-  // Check if player has submitted a score
-  const myPlayer = sessionData?.players.find(p => p.id === currentPlayerId);
-  if (!myPlayer || myPlayer.finalNn === null || myPlayer.finalNn === undefined) {
-    alert('Please submit your score before ending the game');
-    return;
-  }
-
   try {
     const response = await fetch('/api/session/end', {
       method: 'POST',
@@ -379,28 +600,7 @@ function showResults() {
   `;
 
   // Set up save progress handler
-  document.getElementById('btn-save-progress')?.addEventListener('click', async () => {
-    const email = document.getElementById('save-email').value.trim();
-    if (!email) {
-      alert('Please enter your email');
-      return;
-    }
-
-    try {
-      const result = await window.NeutroniumAuth?.sendMagicLink(email, currentPlayerId);
-      if (result?.success) {
-        document.getElementById('save-progress-prompt').innerHTML = `
-          <div class="alert alert-success">
-            Check your email! Click the link to save your progress.
-          </div>
-        `;
-      } else {
-        alert(result?.error || 'Failed to send email');
-      }
-    } catch (error) {
-      alert('Network error. Please try again.');
-    }
-  });
+  setupSaveProgressHandler();
 
   resultsModal.classList.add('active');
 }

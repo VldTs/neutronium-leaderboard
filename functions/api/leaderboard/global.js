@@ -24,6 +24,7 @@ export async function onRequest(context) {
       .from('progress_journal')
       .select(`
         player_id,
+        best_nn,
         players!inner(id, display_name, is_guest)
       `)
       .order('best_nn', { ascending: false });

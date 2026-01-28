@@ -53,6 +53,29 @@ export async function onRequest(context) {
     const playersVotedEnd = sessionPlayers.filter(sp => sp.voted_end).length;
     const playersSubmittedScore = sessionPlayers.filter(sp => sp.final_nn !== null).length;
 
+    // Check for next session if this one is completed
+    let nextSession = null;
+    if (session.status === 'completed') {
+      const nextLevel = session.universe_level + 1;
+      if (nextLevel <= 13) {
+        // Look for an active session at the next level for the same box
+        const { data: nextActiveSession } = await supabase
+          .from('sessions')
+          .select('id, universe_level, status')
+          .eq('box_id', session.box_id)
+          .eq('universe_level', nextLevel)
+          .eq('status', 'active')
+          .single();
+
+        if (nextActiveSession) {
+          nextSession = {
+            id: nextActiveSession.id,
+            universeLevel: nextActiveSession.universe_level,
+          };
+        }
+      }
+    }
+
     return withCors(jsonResponse({
       session: {
         ...session,
@@ -65,6 +88,7 @@ export async function onRequest(context) {
         allVotedEnd: totalPlayers > 0 && playersVotedEnd === totalPlayers,
         allSubmittedScore: totalPlayers > 0 && playersSubmittedScore === totalPlayers,
       },
+      nextSession,
     }), env);
   } catch (error) {
     console.error('Session get error:', error);
