@@ -105,10 +105,11 @@ async function recalculateSessionLevel(supabase, sessionId) {
 
   console.log(`Player max levels: ${JSON.stringify(playerMaxLevels)}, current session level: ${currentSessionLevel}`);
 
-  // Session level is the minimum of current session level AND all players' max levels
-  const newSessionLevel = Math.min(currentSessionLevel, ...playerMaxLevels);
+  // Session level is the minimum of all players' max levels
+  // This allows the level to go UP when a guest signs in with a higher-level account
+  const newSessionLevel = Math.min(...playerMaxLevels);
 
-  console.log(`Calculated new session level: min(${currentSessionLevel}, ${playerMaxLevels.join(', ')}) = ${newSessionLevel}`);
+  console.log(`Calculated new session level: min(${playerMaxLevels.join(', ')}) = ${newSessionLevel}`);
 
   // Only update if level changed
   if (newSessionLevel === currentSessionLevel) {

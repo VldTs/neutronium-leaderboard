@@ -70,40 +70,41 @@ export async function onRequest(context) {
 
     let player;
 
-    // If player_id was provided (upgrading guest), link to that player
-    if (magicToken.player_id) {
-      const { data: existingPlayer, error: playerError } = await supabase
+    // FIRST: Check if email already has an existing account (with progress)
+    // This takes priority over upgrading a guest player
+    const { data: emailPlayer } = await supabase
+      .from('players')
+      .select('*')
+      .eq('email', magicToken.email)
+      .single();
+
+    if (emailPlayer) {
+      // Use the existing account - this player may have progress/levels unlocked
+      player = emailPlayer;
+      console.log('Using existing account for email:', magicToken.email, 'player_id:', player.id);
+    }
+    // SECOND: If no existing account for this email, check if we should upgrade a guest
+    else if (magicToken.player_id) {
+      const { data: guestPlayer, error: playerError } = await supabase
         .from('players')
         .select('*')
         .eq('id', magicToken.player_id)
         .single();
 
-      if (!playerError && existingPlayer) {
-        // Update the player with email if not already set
-        if (!existingPlayer.email) {
-          await supabase
-            .from('players')
-            .update({
-              email: magicToken.email,
-              is_guest: false,
-            })
-            .eq('id', existingPlayer.id);
-        }
-        player = existingPlayer;
+      if (!playerError && guestPlayer) {
+        // Upgrade the guest player with email
+        await supabase
+          .from('players')
+          .update({
+            email: magicToken.email,
+            is_guest: false,
+          })
+          .eq('id', guestPlayer.id);
+
+        player = guestPlayer;
         player.is_guest = false;
-      }
-    }
-
-    // If no player yet, check if email exists
-    if (!player) {
-      const { data: emailPlayer } = await supabase
-        .from('players')
-        .select('*')
-        .eq('email', magicToken.email)
-        .single();
-
-      if (emailPlayer) {
-        player = emailPlayer;
+        player.email = magicToken.email;
+        console.log('Upgraded guest player:', player.id, 'with email:', magicToken.email);
       }
     }
 

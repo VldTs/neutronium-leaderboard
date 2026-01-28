@@ -126,11 +126,11 @@ export async function onRequest(context) {
 
     console.log(`Player max levels: ${JSON.stringify(playerMaxLevels)}, current session level: ${previousLevel}`);
 
-    // Session level is the minimum of current session level AND all players' max levels
-    // This ensures we only lower the level if needed, never raise it above what was selected
-    const newSessionLevel = Math.min(previousLevel, ...playerMaxLevels.map(p => p.maxLevel));
+    // Session level is the minimum of all players' max levels
+    // This allows the level to go UP when a guest signs in with a higher-level account
+    const newSessionLevel = Math.min(...playerMaxLevels.map(p => p.maxLevel));
 
-    console.log(`Calculated new session level: min(${previousLevel}, ${playerMaxLevels.map(p => p.maxLevel).join(', ')}) = ${newSessionLevel}`);
+    console.log(`Calculated new session level: min(${playerMaxLevels.map(p => p.maxLevel).join(', ')}) = ${newSessionLevel}`);
 
     // Update the session level if changed
     if (newSessionLevel !== previousLevel) {

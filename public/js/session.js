@@ -42,17 +42,24 @@ async function init() {
     window.history.replaceState({}, '', cleanUrl);
   }
 
-  // Get current user status
+  // Get the OLD player ID from localStorage BEFORE checking authenticated user
+  // This is the ID that was used when the player was a guest
+  const oldPlayerId = window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
+
+  // Get current user status (this might be different from oldPlayerId if user signed in with existing account)
   const currentUser = await window.NeutroniumAuth?.getCurrentUser();
   isGuest = !currentUser;
 
-  // Get current player ID - use authenticated user ID if available
-  const oldPlayerId = currentPlayerId;
-  currentPlayerId = currentUser?.id || window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
+  // Set current player ID - use authenticated user ID if available
+  currentPlayerId = currentUser?.id || oldPlayerId;
 
   // If returning from sign-in, rejoin session with authenticated player and recalculate level
   if (returnFromSignIn && currentUser) {
-    console.log('Returning from sign-in, rejoining session with authenticated player:', currentUser.id);
+    console.log('Returning from sign-in:', {
+      authenticatedPlayerId: currentUser.id,
+      oldPlayerId,
+      playerName: currentUser.displayName,
+    });
     await rejoinSessionAsAuthenticatedPlayer(currentUser, oldPlayerId);
   }
 
