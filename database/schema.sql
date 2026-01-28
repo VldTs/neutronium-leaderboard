@@ -59,8 +59,8 @@ CREATE TABLE session_players (
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   player_id UUID NOT NULL REFERENCES players(id),
 
-  -- Game data
-  race VARCHAR(20) CHECK (race IN ('Terano', 'Mi-TO', 'Iit', 'Asters', NULL)),
+  -- Game data (race stores figure color: gray, pink, purple, green)
+  race VARCHAR(20) CHECK (race IN ('gray', 'pink', 'purple', 'green', NULL)),
   starting_nn INTEGER DEFAULT 0,
   final_nn INTEGER,
 

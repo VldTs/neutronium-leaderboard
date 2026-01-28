@@ -15,7 +15,7 @@ export async function onRequest(context) {
   try {
     const supabase = createSupabaseClient(env);
     const body = await request.json();
-    const { sessionId, playerId, finalNn, race, startingNn } = body;
+    const { sessionId, playerId, finalNn, color, startingNn } = body;
 
     // Validate required fields
     if (!sessionId) {
@@ -28,10 +28,10 @@ export async function onRequest(context) {
       return withCors(errorResponse('finalNn is required'), env);
     }
 
-    // Validate race if provided
-    const validRaces = ['Terano', 'Mi-TO', 'Iit', 'Asters'];
-    if (race && !validRaces.includes(race)) {
-      return withCors(errorResponse(`race must be one of: ${validRaces.join(', ')}`), env);
+    // Validate color if provided
+    const validColors = ['gray', 'pink', 'purple', 'green'];
+    if (color && !validColors.includes(color)) {
+      return withCors(errorResponse(`color must be one of: ${validColors.join(', ')}`), env);
     }
 
     // Check if session exists and is active
@@ -66,8 +66,8 @@ export async function onRequest(context) {
       final_nn: finalNn,
     };
 
-    if (race) {
-      updateData.race = race;
+    if (color) {
+      updateData.race = color; // Store color in race field
     }
 
     if (startingNn !== undefined) {

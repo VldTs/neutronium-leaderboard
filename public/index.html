@@ -82,6 +82,16 @@
             <input type="text" id="player-name" class="form-input" placeholder="Enter your name" maxlength="50">
           </div>
           <div class="form-group">
+            <label class="form-label">Your Figure Color</label>
+            <input type="hidden" id="player-color" value="">
+            <div class="color-picker">
+              <button type="button" class="color-btn" data-color="gray" style="background: #6b7280;" title="Gray"></button>
+              <button type="button" class="color-btn" data-color="pink" style="background: #ec4899;" title="Pink"></button>
+              <button type="button" class="color-btn" data-color="purple" style="background: #8b5cf6;" title="Purple"></button>
+              <button type="button" class="color-btn" data-color="green" style="background: #22c55e;" title="Green"></button>
+            </div>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="universe-level">Universe Level</label>
             <select id="universe-level" class="form-input form-select">
               <option value="1">Level 1 - Basic</option>
@@ -112,6 +122,16 @@
           <div class="form-group">
             <label class="form-label" for="join-player-name">Your Name</label>
             <input type="text" id="join-player-name" class="form-input" placeholder="Enter your name" maxlength="50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your Figure Color</label>
+            <input type="hidden" id="join-player-color" value="">
+            <div class="color-picker" id="join-color-picker">
+              <button type="button" class="color-btn" data-color="gray" style="background: #6b7280;" title="Gray"></button>
+              <button type="button" class="color-btn" data-color="pink" style="background: #ec4899;" title="Pink"></button>
+              <button type="button" class="color-btn" data-color="purple" style="background: #8b5cf6;" title="Purple"></button>
+              <button type="button" class="color-btn" data-color="green" style="background: #22c55e;" title="Green"></button>
+            </div>
           </div>
           <button type="button" id="btn-join-session" class="btn btn-primary btn-lg" style="width: 100%;">
             Join Game

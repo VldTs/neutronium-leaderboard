@@ -59,6 +59,34 @@ function setupEventListeners() {
   document.getElementById('btn-start-session')?.addEventListener('click', startSession);
   document.getElementById('btn-join-session')?.addEventListener('click', joinSession);
   document.getElementById('btn-retry')?.addEventListener('click', resetForm);
+
+  // Color picker for start session
+  document.querySelectorAll('#start-session .color-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectColor(btn.dataset.color, 'player-color', '#start-session'));
+  });
+
+  // Color picker for join session
+  document.querySelectorAll('#join-session .color-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectColor(btn.dataset.color, 'join-player-color', '#join-session'));
+  });
+
+  // Restore saved color
+  const savedColor = localStorage.getItem('neutronium_player_color');
+  if (savedColor) {
+    selectColor(savedColor, 'player-color', '#start-session');
+    selectColor(savedColor, 'join-player-color', '#join-session');
+  }
+}
+
+/**
+ * Select a figure color
+ */
+function selectColor(color, inputId, containerSelector) {
+  document.getElementById(inputId).value = color;
+  document.querySelectorAll(`${containerSelector} .color-btn`).forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.color === color);
+  });
+  localStorage.setItem('neutronium_player_color', color);
 }
 
 /**
@@ -172,10 +200,16 @@ function showBoxFound(data) {
  */
 async function startSession() {
   const playerName = document.getElementById('player-name')?.value.trim();
+  const playerColor = document.getElementById('player-color')?.value;
   const universeLevel = parseInt(document.getElementById('universe-level')?.value || '1');
 
   if (!playerName) {
     alert('Please enter your name');
+    return;
+  }
+
+  if (!playerColor) {
+    alert('Please select your figure color');
     return;
   }
 
@@ -192,6 +226,7 @@ async function startSession() {
         boxId: currentBoxId,
         universeLevel,
         playerName,
+        playerColor,
         playerId: window.NeutroniumAuth?.getOrCreateGuestId(),
       }),
       credentials: 'include',
@@ -229,9 +264,15 @@ async function startSession() {
  */
 async function joinSession() {
   const playerName = document.getElementById('join-player-name')?.value.trim();
+  const playerColor = document.getElementById('join-player-color')?.value;
 
   if (!playerName) {
     alert('Please enter your name');
+    return;
+  }
+
+  if (!playerColor) {
+    alert('Please select your figure color');
     return;
   }
 
@@ -252,6 +293,7 @@ async function joinSession() {
       body: JSON.stringify({
         sessionId: activeSession.id,
         playerName,
+        playerColor,
         playerId: window.NeutroniumAuth?.getOrCreateGuestId(),
       }),
       credentials: 'include',

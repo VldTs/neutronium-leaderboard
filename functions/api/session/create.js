@@ -15,7 +15,7 @@ export async function onRequest(context) {
   try {
     const supabase = createSupabaseClient(env);
     const body = await request.json();
-    const { boxId, universeLevel, playerName, playerId } = body;
+    const { boxId, universeLevel, playerName, playerColor, playerId } = body;
 
     // Validate required fields
     if (!boxId) {
@@ -26,6 +26,12 @@ export async function onRequest(context) {
     }
     if (!playerName) {
       return withCors(errorResponse('playerName is required'), env);
+    }
+
+    // Validate color if provided
+    const validColors = ['gray', 'pink', 'purple', 'green'];
+    if (playerColor && !validColors.includes(playerColor)) {
+      return withCors(errorResponse(`playerColor must be one of: ${validColors.join(', ')}`), env);
     }
 
     // Check if box exists, create if not
@@ -60,18 +66,33 @@ export async function onRequest(context) {
     // Get or create player
     let player;
     if (playerId) {
-      const { data: existingPlayer, error: playerError } = await supabase
+      // Try to find existing player
+      const { data: existingPlayer } = await supabase
         .from('players')
         .select('*')
         .eq('id', playerId)
         .single();
 
-      if (playerError || !existingPlayer) {
-        return withCors(errorResponse('Player not found', 404), env);
+      if (existingPlayer) {
+        player = existingPlayer;
+      } else {
+        // Player ID provided but not found - create new player
+        const { data: newPlayer, error: createError } = await supabase
+          .from('players')
+          .insert({
+            display_name: playerName,
+            is_guest: true,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          throw createError;
+        }
+        player = newPlayer;
       }
-      player = existingPlayer;
     } else {
-      // Create guest player
+      // No player ID - create guest player
       const { data: newPlayer, error: createError } = await supabase
         .from('players')
         .insert({
@@ -109,6 +130,7 @@ export async function onRequest(context) {
       .insert({
         session_id: session.id,
         player_id: player.id,
+        race: playerColor || null, // Store color in race field
       });
 
     if (joinError) {

@@ -64,17 +64,11 @@
 
       <!-- Your Score Input (if in session) -->
       <section id="score-input" class="card mt-lg">
-        <h3 class="card-title mb-md">Your Score</h3>
-        <div class="form-group">
-          <label class="form-label" for="my-race">Race</label>
-          <select id="my-race" class="form-input form-select">
-            <option value="">Select race...</option>
-            <option value="Terano">Terano (Pink)</option>
-            <option value="Mi-TO">Mi-TO (Blue)</option>
-            <option value="Iit">Iit (Orange)</option>
-            <option value="Asters">Asters (Green)</option>
-          </select>
+        <div class="score-header mb-md">
+          <h3 class="card-title">Your Score</h3>
+          <div id="my-color-indicator" class="my-color-indicator"></div>
         </div>
+        <input type="hidden" id="my-color" value="">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
           <div class="form-group">
             <label class="form-label" for="my-starting-nn">Starting Nn</label>
@@ -88,6 +82,9 @@
         <button type="button" id="btn-submit-score" class="btn btn-primary" style="width: 100%;">
           Submit Score
         </button>
+        <p id="score-submitted-msg" class="text-center text-muted mt-md hidden">
+          Score submitted! You can update it anytime before the game ends.
+        </p>
       </section>
 
       <!-- End Game Section -->

@@ -51,6 +51,17 @@ function setupEventListeners() {
 }
 
 /**
+ * Show player's color in the score section
+ */
+function showMyColor(color) {
+  const indicator = document.getElementById('my-color-indicator');
+  if (indicator && color) {
+    indicator.style.background = getColorHex(color);
+    document.getElementById('my-color').value = color;
+  }
+}
+
+/**
  * Load session data from API
  */
 async function loadSession() {
@@ -97,7 +108,7 @@ function transformApiResponse(apiData) {
       name: sp.player?.display_name || 'Unknown',
       isGuest: sp.player?.is_guest ?? true,
       isHost: sp.player_id === session.host_player_id,
-      race: sp.race,
+      color: sp.race, // race field stores color
       startingNn: sp.starting_nn,
       finalNn: sp.final_nn,
       votedEnd: sp.voted_end,
@@ -155,15 +166,23 @@ function renderSession() {
 
   // Pre-fill score if available
   if (myPlayer) {
-    if (myPlayer.race) {
-      document.getElementById('my-race').value = myPlayer.race;
+    if (myPlayer.color) {
+      showMyColor(myPlayer.color);
     }
     if (myPlayer.startingNn !== null && myPlayer.startingNn !== undefined) {
       document.getElementById('my-starting-nn').value = myPlayer.startingNn;
     }
     if (myPlayer.finalNn !== null && myPlayer.finalNn !== undefined) {
       document.getElementById('my-final-nn').value = myPlayer.finalNn;
+      // Show submitted message
+      document.getElementById('score-submitted-msg')?.classList.remove('hidden');
     }
+  }
+
+  // Hide score input if not in session
+  const scoreInput = document.getElementById('score-input');
+  if (scoreInput) {
+    scoreInput.classList.toggle('hidden', !myPlayer);
   }
 }
 
@@ -176,32 +195,49 @@ function renderPlayers() {
   playersList.innerHTML = sessionData.players.map(player => {
     const isMe = player.id === currentPlayerId;
     const isHost = player.isHost;
+    const avatarColor = player.color ? getColorHex(player.color) : 'var(--color-accent)';
+    const hasScore = player.finalNn !== null;
 
     return `
-      <div class="player-card">
-        <div class="player-avatar">${player.name.charAt(0).toUpperCase()}</div>
+      <div class="player-card ${isMe ? 'player-card-me' : ''}">
+        <div class="player-avatar" style="background: ${avatarColor};">
+          ${player.name.charAt(0).toUpperCase()}
+        </div>
         <div class="player-info">
           <div class="player-name">
             ${escapeHtml(player.name)}
-            ${isHost ? '<span class="badge badge-host ml-sm">Host</span>' : ''}
             ${isMe ? '<span class="badge badge-you ml-sm">You</span>' : ''}
+            ${isHost ? '<span class="badge badge-host ml-sm">Host</span>' : ''}
           </div>
           <div class="player-meta">
-            ${player.race ? `<span>${player.race}</span> • ` : ''}
-            ${player.finalNn !== null ? `<span class="nn-value">${player.finalNn}</span>` : 'No score yet'}
-            ${player.votedEnd ? ' • Ready to end' : ''}
+            ${hasScore ? `<span class="nn-value">${player.finalNn}</span>` : '<span class="text-muted">Waiting for score...</span>'}
+            ${player.votedEnd ? '<span class="player-status-ready">Ready</span>' : ''}
           </div>
         </div>
+        ${hasScore ? '<div class="player-check">&#10003;</div>' : ''}
       </div>
     `;
   }).join('');
 }
 
 /**
+ * Get hex color from color name
+ */
+function getColorHex(color) {
+  const colors = {
+    gray: '#6b7280',
+    pink: '#ec4899',
+    purple: '#8b5cf6',
+    green: '#22c55e',
+  };
+  return colors[color] || colors.gray;
+}
+
+/**
  * Submit player score
  */
 async function submitScore() {
-  const race = document.getElementById('my-race').value || null;
+  const color = document.getElementById('my-color').value || null;
   const startingNn = parseInt(document.getElementById('my-starting-nn').value) || 0;
   const finalNn = parseInt(document.getElementById('my-final-nn').value);
 
@@ -217,7 +253,7 @@ async function submitScore() {
       body: JSON.stringify({
         sessionId,
         playerId: currentPlayerId,
-        race,
+        color,
         startingNn,
         finalNn,
       }),
@@ -227,6 +263,8 @@ async function submitScore() {
     const data = await response.json();
 
     if (response.ok) {
+      // Show submitted message
+      document.getElementById('score-submitted-msg')?.classList.remove('hidden');
       // Refresh session data
       await loadSession();
     } else {

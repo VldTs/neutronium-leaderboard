@@ -303,6 +303,31 @@ a:hover {
   padding-right: 2.5rem;
 }
 
+/* Color picker */
+.color-picker {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.color-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.color-btn:hover {
+  transform: scale(1.1);
+}
+
+.color-btn.selected {
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
 /* Nn value display */
 .nn-value {
   font-family: var(--font-display);
@@ -325,12 +350,18 @@ a:hover {
   background: var(--color-bg-tertiary);
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-sm);
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.player-card-me {
+  border-color: var(--color-accent);
+  background: rgba(139, 92, 246, 0.1);
 }
 
 .player-avatar {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-muted) 100%);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -338,20 +369,73 @@ a:hover {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.25rem;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
 }
 
 .player-info {
   flex: 1;
+  min-width: 0;
 }
 
 .player-name {
   font-weight: 600;
   margin-bottom: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
 }
 
 .player-meta {
   font-size: 0.875rem;
   color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.player-status-ready {
+  color: var(--color-success);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.player-check {
+  width: 32px;
+  height: 32px;
+  background: var(--color-success);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.player-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Score section */
+.score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.my-color-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
 }
 
 /* Badge */
