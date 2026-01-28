@@ -158,11 +158,12 @@ function renderProfile(data) {
 
   const player = data.player;
   const stats = data.stats || {};
-  const progressJournal = data.progressJournal || [];
+  const progressJournal = data.progress || data.progressJournal || [];
 
-  // Player info
-  document.getElementById('profile-initial').textContent = player.displayName.charAt(0).toUpperCase();
-  document.getElementById('profile-name').textContent = player.displayName;
+  // Player info - handle both name and displayName from API
+  const displayName = player.displayName || player.name || 'Player';
+  document.getElementById('profile-initial').textContent = displayName.charAt(0).toUpperCase();
+  document.getElementById('profile-name').textContent = displayName;
   document.getElementById('profile-joined').textContent = formatDate(player.createdAt);
 
   // Show upgrade button for guest profiles

@@ -73,7 +73,7 @@ export function createAuthCookie(token, env) {
   const domain = env.COOKIE_DOMAIN || 'localhost';
   const secure = env.APP_URL?.startsWith('https') ? 'Secure; ' : '';
 
-  return `${TOKEN_COOKIE_NAME}=${token}; HttpOnly; ${secure}SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}${domain !== 'localhost' ? `; Domain=${domain}` : ''}`;
+  return `${TOKEN_COOKIE_NAME}=${token}; HttpOnly; ${secure}SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}${domain !== 'localhost' ? `; Domain=${domain}` : ''}`;
 }
 
 /**

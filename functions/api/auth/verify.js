@@ -28,7 +28,18 @@ export async function onRequest(context) {
       .single();
 
     if (findError || !magicToken) {
-      return errorRedirect('Link is invalid or has already been used');
+      console.log('Token lookup failed:', findError?.message || 'Token not found or already used');
+      // Check if token exists but was used
+      const { data: usedToken } = await supabase
+        .from('magic_tokens')
+        .select('used_at')
+        .eq('token', token)
+        .single();
+
+      if (usedToken?.used_at) {
+        return errorRedirect('This link has already been used. Please request a new one.');
+      }
+      return errorRedirect('Link is invalid. Please request a new one.');
     }
 
     // Check if expired
@@ -106,11 +117,14 @@ export async function onRequest(context) {
     const authToken = await createAuthToken(player, env.JWT_SECRET);
     const cookie = createAuthCookie(authToken, env);
 
-    // Redirect to home with success
+    console.log('Verify success - Player:', player.id, player.display_name);
+    console.log('Setting cookie:', cookie.substring(0, 50) + '...');
+
+    // Redirect to profile with success
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${appUrl}/?auth_success=1`,
+        'Location': `${appUrl}/profile.html?auth_success=1`,
         'Set-Cookie': cookie,
       },
     });
