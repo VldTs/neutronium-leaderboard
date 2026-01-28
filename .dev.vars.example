@@ -1,0 +1,15 @@
+# Copy this file to .dev.vars and fill in your values
+# These are used during local development with `wrangler pages dev`
+
+# Supabase
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJhbGc...
+
+# Email (Resend)
+RESEND_API_KEY=re_xxxxx
+FROM_EMAIL=noreply@neutronium.games
+
+# App
+APP_URL=http://localhost:8788
+JWT_SECRET=your-256-bit-secret-for-development-only
+COOKIE_DOMAIN=localhost

@@ -1,0 +1,26 @@
+{
+  "name": "neutronium-leaderboard",
+  "version": "1.0.0",
+  "description": "Global Progress Journal leaderboard for Neutronium Expansion board game",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --compatibility-date=2024-01-01",
+    "deploy": "wrangler pages deploy public",
+    "db:push": "cat database/schema.sql | pbcopy && echo 'Schema copied to clipboard - paste in Supabase SQL editor'"
+  },
+  "keywords": [
+    "neutronium",
+    "board-game",
+    "leaderboard",
+    "cloudflare-pages"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "jose": "^5.2.0"
+  }
+}

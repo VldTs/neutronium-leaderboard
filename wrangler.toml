@@ -1,0 +1,21 @@
+name = "neutronium-leaderboard"
+compatibility_date = "2024-01-01"
+
+# Pages configuration
+pages_build_output_dir = "public"
+
+# Environment variables (set via Cloudflare dashboard or wrangler secret)
+# SUPABASE_URL - Supabase project URL
+# SUPABASE_SERVICE_KEY - Supabase service role key (NOT anon key)
+# RESEND_API_KEY - Resend email API key
+# FROM_EMAIL - Sender email address
+# APP_URL - Production app URL
+# JWT_SECRET - Secret for signing auth tokens
+# COOKIE_DOMAIN - Cookie domain for auth
+
+[env.production]
+# Production-specific settings
+# Set secrets via: wrangler pages secret put SECRET_NAME
+
+[env.preview]
+# Preview/staging settings

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neutronium Expansion - Global Leaderboard</title>
+  <meta name="description" content="Track your Neutronium scores across 13 universe levels. Join the global leaderboard!">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0e17">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">
+        <div class="logo-icon"></div>
+        <span>Neutronium</span>
+      </a>
+      <nav class="nav">
+        <a href="/" class="active">Home</a>
+        <a href="/leaderboard.html">Leaderboard</a>
+        <a href="/profile.html" id="nav-profile">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Neutronium Expansion</h1>
+      <p class="hero-subtitle">Global Progress Journal</p>
+    </section>
+
+    <!-- Box Entry Section -->
+    <div id="box-entry" class="card" style="max-width: 500px; margin: 0 auto;">
+      <div class="card-header">
+        <h3 class="card-title">Start Playing</h3>
+        <p class="text-muted">Scan the QR code on your game box or enter your box ID</p>
+      </div>
+
+      <div id="box-loading" class="loading hidden">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="box-form">
+        <div class="form-group">
+          <label class="form-label" for="box-id">Box ID</label>
+          <input
+            type="text"
+            id="box-id"
+            class="form-input"
+            placeholder="NE-2026-00001"
+            pattern="NE-\d{4}-\d{5}"
+          >
+        </div>
+        <button type="button" id="btn-check-box" class="btn btn-primary btn-lg" style="width: 100%;">
+          Check Box
+        </button>
+      </div>
+
+      <div id="box-not-found" class="hidden mt-lg">
+        <div class="alert alert-error">
+          Box not found. Would you like to register it?
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="register-email">Email (optional, for recovery)</label>
+          <input type="email" id="register-email" class="form-input" placeholder="your@email.com">
+        </div>
+        <button type="button" id="btn-register-box" class="btn btn-primary btn-lg" style="width: 100%;">
+          Register Box
+        </button>
+      </div>
+
+      <div id="box-found" class="hidden mt-lg">
+        <div class="alert alert-success">
+          <strong>Box Found!</strong> <span id="box-status-text"></span>
+        </div>
+
+        <!-- No Active Session -->
+        <div id="start-session" class="hidden">
+          <div class="form-group">
+            <label class="form-label" for="player-name">Your Name</label>
+            <input type="text" id="player-name" class="form-input" placeholder="Enter your name" maxlength="50">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="universe-level">Universe Level</label>
+            <select id="universe-level" class="form-input form-select">
+              <option value="1">Level 1 - Basic</option>
+              <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+              <option value="4">Level 4</option>
+              <option value="5">Level 5</option>
+              <option value="6">Level 6</option>
+              <option value="7">Level 7</option>
+              <option value="8">Level 8</option>
+              <option value="9">Level 9</option>
+              <option value="10">Level 10</option>
+              <option value="11">Level 11</option>
+              <option value="12">Level 12</option>
+              <option value="13">Level 13 - Complete</option>
+            </select>
+          </div>
+          <button type="button" id="btn-start-session" class="btn btn-primary btn-lg" style="width: 100%;">
+            Start New Game
+          </button>
+        </div>
+
+        <!-- Active Session Exists -->
+        <div id="join-session" class="hidden">
+          <p class="mb-md">
+            <strong>Active Session:</strong> Level <span id="active-level"></span> with <span id="active-players"></span> player(s)
+          </p>
+          <div class="form-group">
+            <label class="form-label" for="join-player-name">Your Name</label>
+            <input type="text" id="join-player-name" class="form-input" placeholder="Enter your name" maxlength="50">
+          </div>
+          <button type="button" id="btn-join-session" class="btn btn-primary btn-lg" style="width: 100%;">
+            Join Game
+          </button>
+        </div>
+      </div>
+
+      <div id="box-error" class="hidden mt-lg">
+        <div class="alert alert-error" id="error-message"></div>
+        <button type="button" id="btn-retry" class="btn btn-secondary mt-md">
+          Try Again
+        </button>
+      </div>
+    </div>
+
+    <!-- Leaderboard Preview -->
+    <section class="mt-xl">
+      <h2 class="text-center mb-lg">Top Players</h2>
+      <div id="leaderboard-preview" class="card">
+        <div class="loading">
+          <div class="spinner"></div>
+        </div>
+      </div>
+      <div class="text-center mt-md">
+        <a href="/leaderboard.html" class="btn btn-secondary">View Full Leaderboard</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Neutronium Expansion &copy; 2026</p>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

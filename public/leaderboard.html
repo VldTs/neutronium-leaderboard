@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard - Neutronium Expansion</title>
+  <meta name="description" content="Global rankings for Neutronium Expansion board game">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0e17">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">
+        <div class="logo-icon"></div>
+        <span>Neutronium</span>
+      </a>
+      <nav class="nav">
+        <a href="/">Home</a>
+        <a href="/leaderboard.html" class="active">Leaderboard</a>
+        <a href="/profile.html">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Global Leaderboard</h1>
+      <p class="hero-subtitle">Top players across all universe levels</p>
+    </section>
+
+    <!-- Level Tabs -->
+    <div class="card mb-lg">
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        <button class="btn btn-primary level-tab active" data-level="all">Overall</button>
+        <button class="btn btn-secondary level-tab" data-level="1">1</button>
+        <button class="btn btn-secondary level-tab" data-level="2">2</button>
+        <button class="btn btn-secondary level-tab" data-level="3">3</button>
+        <button class="btn btn-secondary level-tab" data-level="4">4</button>
+        <button class="btn btn-secondary level-tab" data-level="5">5</button>
+        <button class="btn btn-secondary level-tab" data-level="6">6</button>
+        <button class="btn btn-secondary level-tab" data-level="7">7</button>
+        <button class="btn btn-secondary level-tab" data-level="8">8</button>
+        <button class="btn btn-secondary level-tab" data-level="9">9</button>
+        <button class="btn btn-secondary level-tab" data-level="10">10</button>
+        <button class="btn btn-secondary level-tab" data-level="11">11</button>
+        <button class="btn btn-secondary level-tab" data-level="12">12</button>
+        <button class="btn btn-secondary level-tab" data-level="13">13</button>
+      </div>
+    </div>
+
+    <!-- Your Position (if logged in) -->
+    <div id="your-position" class="card mb-lg hidden">
+      <h4 class="mb-sm">Your Position</h4>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span class="nn-value" style="font-size: 2rem;" id="your-rank">#-</span>
+        <div>
+          <p id="your-score" class="nn-value">0</p>
+          <p class="text-muted" id="your-levels">0 levels completed</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rankings Table -->
+    <div class="card">
+      <div id="leaderboard-loading" class="loading">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="leaderboard-content" class="hidden">
+        <table class="rankings-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Player</th>
+              <th id="score-header">Total Nn</th>
+              <th>Levels</th>
+            </tr>
+          </thead>
+          <tbody id="rankings-body">
+            <!-- Rankings will be inserted here -->
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div id="pagination" class="mt-lg text-center hidden">
+          <button id="btn-prev" class="btn btn-secondary" disabled>Previous</button>
+          <span id="page-info" class="mx-md">Page 1 of 1</span>
+          <button id="btn-next" class="btn btn-secondary" disabled>Next</button>
+        </div>
+      </div>
+
+      <div id="leaderboard-empty" class="hidden text-center" style="padding: 3rem;">
+        <p class="text-muted">No rankings yet. Be the first to play!</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Neutronium Expansion &copy; 2026</p>
+    </div>
+  </footer>
+
+  <script src="/js/leaderboard.js"></script>
+</body>
+</html>

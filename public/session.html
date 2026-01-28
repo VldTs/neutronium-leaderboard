@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Session - Neutronium Leaderboard</title>
+  <meta name="description" content="Active game session for Neutronium Expansion">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0e17">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">
+        <div class="logo-icon"></div>
+        <span>Neutronium</span>
+      </a>
+      <nav class="nav">
+        <a href="/">Home</a>
+        <a href="/leaderboard.html">Leaderboard</a>
+        <a href="/profile.html">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Session Header -->
+    <section id="session-header" class="card mt-lg">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2>Universe Level <span id="session-level">-</span></h2>
+          <p class="text-muted">Box: <span id="session-box">-</span></p>
+        </div>
+        <div>
+          <span id="session-status" class="badge badge-host">Active</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading State -->
+    <div id="session-loading" class="loading mt-xl">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Session Not Found -->
+    <div id="session-not-found" class="card mt-lg hidden">
+      <div class="text-center">
+        <h3 class="mb-md">Session Not Found</h3>
+        <p class="text-muted mb-lg">This session may have ended or the link is invalid.</p>
+        <a href="/" class="btn btn-primary">Go Home</a>
+      </div>
+    </div>
+
+    <!-- Session Content -->
+    <div id="session-content" class="hidden">
+      <!-- Players List -->
+      <section class="card mt-lg">
+        <h3 class="card-title mb-md">Players</h3>
+        <div id="players-list">
+          <!-- Player cards will be inserted here -->
+        </div>
+      </section>
+
+      <!-- Your Score Input (if in session) -->
+      <section id="score-input" class="card mt-lg">
+        <h3 class="card-title mb-md">Your Score</h3>
+        <div class="form-group">
+          <label class="form-label" for="my-race">Race</label>
+          <select id="my-race" class="form-input form-select">
+            <option value="">Select race...</option>
+            <option value="Terano">Terano (Pink)</option>
+            <option value="Mi-TO">Mi-TO (Blue)</option>
+            <option value="Iit">Iit (Orange)</option>
+            <option value="Asters">Asters (Green)</option>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="my-starting-nn">Starting Nn</label>
+            <input type="number" id="my-starting-nn" class="form-input" min="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="my-final-nn">Final Nn</label>
+            <input type="number" id="my-final-nn" class="form-input" min="0" placeholder="0">
+          </div>
+        </div>
+        <button type="button" id="btn-submit-score" class="btn btn-primary" style="width: 100%;">
+          Submit Score
+        </button>
+      </section>
+
+      <!-- End Game Section -->
+      <section class="card mt-lg">
+        <h3 class="card-title mb-md">End Game</h3>
+        <p class="text-muted mb-md">
+          All players must vote to end the game. Current votes: <strong id="end-votes">0/0</strong>
+        </p>
+        <button type="button" id="btn-end-game" class="btn btn-secondary" style="width: 100%;">
+          Vote to End Game
+        </button>
+      </section>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="results-modal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title">Game Complete!</h3>
+        </div>
+        <div id="results-content">
+          <!-- Results will be inserted here -->
+        </div>
+        <div class="mt-lg" style="display: flex; gap: 1rem;">
+          <a href="/leaderboard.html" class="btn btn-secondary" style="flex: 1;">View Leaderboard</a>
+          <a href="/" class="btn btn-primary" style="flex: 1;">New Game</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Neutronium Expansion &copy; 2026</p>
+    </div>
+  </footer>
+
+  <script src="/js/session.js"></script>
+</body>
+</html>

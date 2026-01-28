@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - Neutronium Leaderboard</title>
+  <meta name="description" content="Your progress journal and game history">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0e17">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-content">
+      <a href="/" class="logo">
+        <div class="logo-icon"></div>
+        <span>Neutronium</span>
+      </a>
+      <nav class="nav">
+        <a href="/">Home</a>
+        <a href="/leaderboard.html">Leaderboard</a>
+        <a href="/profile.html" class="active">Profile</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Loading State -->
+    <div id="profile-loading" class="loading mt-xl">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Not Logged In -->
+    <div id="profile-guest" class="card mt-xl hidden" style="max-width: 500px; margin-left: auto; margin-right: auto;">
+      <div class="text-center">
+        <h2 class="mb-md">Save Your Progress</h2>
+        <p class="text-muted mb-lg">
+          Enter your email to save your scores and access them from any device.
+        </p>
+        <div class="form-group">
+          <input type="email" id="login-email" class="form-input" placeholder="your@email.com">
+        </div>
+        <button type="button" id="btn-send-magic-link" class="btn btn-primary btn-lg" style="width: 100%;">
+          Send Magic Link
+        </button>
+        <p class="text-muted mt-md" style="font-size: 0.875rem;">
+          We'll send you a link to sign in. No password needed!
+        </p>
+      </div>
+
+      <div id="magic-link-sent" class="hidden mt-lg">
+        <div class="alert alert-success">
+          Check your email! We sent you a magic link to sign in.
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Content -->
+    <div id="profile-content" class="hidden">
+      <!-- Player Info -->
+      <section class="card mt-lg">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+          <div class="player-avatar" style="width: 80px; height: 80px; font-size: 2rem;">
+            <span id="profile-initial">?</span>
+          </div>
+          <div style="flex: 1;">
+            <h2 id="profile-name">Player</h2>
+            <p class="text-muted">Member since <span id="profile-joined">-</span></p>
+          </div>
+          <div id="guest-upgrade" class="hidden">
+            <button type="button" id="btn-upgrade" class="btn btn-secondary">
+              Save Progress
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <section class="card mt-lg">
+        <h3 class="card-title mb-md">Stats</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+          <div class="text-center">
+            <p class="nn-value" style="font-size: 2rem;" id="stat-total-nn">0</p>
+            <p class="text-muted">Total Best Nn</p>
+          </div>
+          <div class="text-center">
+            <p style="font-size: 2rem; font-family: var(--font-display); font-weight: 700;" id="stat-games">0</p>
+            <p class="text-muted">Games Played</p>
+          </div>
+          <div class="text-center">
+            <p style="font-size: 2rem; font-family: var(--font-display); font-weight: 700;" id="stat-levels">0</p>
+            <p class="text-muted">Levels Completed</p>
+          </div>
+          <div class="text-center">
+            <p style="font-size: 2rem; font-family: var(--font-display); font-weight: 700;" id="stat-race">-</p>
+            <p class="text-muted">Favorite Race</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Progress Journal -->
+      <section class="card mt-lg">
+        <h3 class="card-title mb-md">Progress Journal</h3>
+        <p class="text-muted mb-md">Your best Neutronium score for each universe level</p>
+        <div id="journal-grid" class="journal-grid">
+          <!-- Levels will be inserted here -->
+        </div>
+      </section>
+
+      <!-- Recent Sessions -->
+      <section class="card mt-lg">
+        <h3 class="card-title mb-md">Recent Sessions</h3>
+        <div id="recent-sessions">
+          <p class="text-muted">No sessions yet.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Upgrade Modal -->
+  <div id="upgrade-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Save Your Progress</h3>
+      </div>
+      <p class="text-muted mb-lg">
+        Enter your email to save your scores permanently and access them from any device.
+      </p>
+      <div class="form-group">
+        <input type="email" id="upgrade-email" class="form-input" placeholder="your@email.com">
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button type="button" id="btn-cancel-upgrade" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+        <button type="button" id="btn-confirm-upgrade" class="btn btn-primary" style="flex: 1;">Send Link</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Neutronium Expansion &copy; 2026</p>
+    </div>
+  </footer>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>
