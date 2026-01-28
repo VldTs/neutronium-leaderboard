@@ -153,8 +153,11 @@ function showBoxFound(data) {
     startSession.classList.add('hidden');
     joinSession.classList.remove('hidden');
 
-    document.getElementById('active-level').textContent = data.activeSession.universeLevel;
-    document.getElementById('active-players').textContent = data.activeSession.playerCount;
+    // Handle both snake_case (API) and camelCase
+    const level = data.activeSession.universe_level || data.activeSession.universeLevel;
+    document.getElementById('active-level').textContent = level;
+    // Player count needs to be fetched from session details or estimated
+    document.getElementById('active-players').textContent = data.activeSession.playerCount || '?';
   } else {
     // No active session
     activeSession = null;
@@ -197,6 +200,10 @@ async function startSession() {
     const data = await response.json();
 
     if (response.ok) {
+      // Store the actual player ID from the API
+      if (data.player?.id) {
+        window.NeutroniumAuth?.setPlayerId(data.player.id);
+      }
       // Redirect to session page
       window.location.href = `/session.html?id=${data.session.id}`;
     } else if (response.status === 409) {
@@ -253,6 +260,10 @@ async function joinSession() {
     const data = await response.json();
 
     if (response.ok) {
+      // Store the actual player ID from the API
+      if (data.player?.id) {
+        window.NeutroniumAuth?.setPlayerId(data.player.id);
+      }
       // Redirect to session page
       window.location.href = `/session.html?id=${data.session.id}`;
     } else {
@@ -301,8 +312,8 @@ async function loadLeaderboardPreview() {
           ${data.rankings.map(player => `
             <tr>
               <td class="rank-cell ${player.rank <= 3 ? `rank-${player.rank}` : ''}">#${player.rank}</td>
-              <td>${escapeHtml(player.name)}</td>
-              <td class="nn-value">${player.totalBestNn}</td>
+              <td>${escapeHtml(player.displayName || player.name)}</td>
+              <td class="nn-value">${player.totalNn || player.totalBestNn || 0}</td>
             </tr>
           `).join('')}
         </tbody>

@@ -81,6 +81,22 @@ async function isLoggedIn() {
   return user !== null;
 }
 
+/**
+ * Set player ID (used after creating/joining session)
+ * @param {string} id - Player ID from API
+ */
+function setPlayerId(id) {
+  localStorage.setItem(AUTH_STORAGE_KEY, id);
+}
+
+/**
+ * Get current player ID
+ * @returns {string|null} Player ID or null
+ */
+function getPlayerId() {
+  return localStorage.getItem(AUTH_STORAGE_KEY);
+}
+
 // Export for use in other scripts
 window.NeutroniumAuth = {
   getOrCreateGuestId,
@@ -89,4 +105,6 @@ window.NeutroniumAuth = {
   getCurrentUser,
   sendMagicLink,
   isLoggedIn,
+  setPlayerId,
+  getPlayerId,
 };

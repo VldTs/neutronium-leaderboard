@@ -30,7 +30,7 @@ async function init() {
   }
 
   // Get current player ID
-  currentPlayerId = localStorage.getItem('neutronium_guest_id');
+  currentPlayerId = window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
 
   // Load session data
   await loadSession();
@@ -66,12 +66,49 @@ async function loadSession() {
       throw new Error('Failed to load session');
     }
 
-    sessionData = await response.json();
+    const apiData = await response.json();
+
+    // Transform API response to expected format
+    sessionData = transformApiResponse(apiData);
     renderSession();
   } catch (error) {
     console.error('Error loading session:', error);
     showNotFound();
   }
+}
+
+/**
+ * Transform API response to internal format
+ */
+function transformApiResponse(apiData) {
+  const { session, stats } = apiData;
+
+  return {
+    id: session.id,
+    boxId: session.box_id,
+    universeLevel: session.universe_level,
+    status: session.status,
+    hostPlayerId: session.host_player_id,
+    startedAt: session.started_at,
+    endedAt: session.ended_at,
+    players: (session.players || []).map(sp => ({
+      id: sp.player_id,
+      sessionPlayerId: sp.id,
+      name: sp.player?.display_name || 'Unknown',
+      isGuest: sp.player?.is_guest ?? true,
+      isHost: sp.player_id === session.host_player_id,
+      race: sp.race,
+      startingNn: sp.starting_nn,
+      finalNn: sp.final_nn,
+      votedEnd: sp.voted_end,
+      joinedAt: sp.joined_at,
+    })),
+    endVotes: {
+      current: stats?.playersVotedEnd || 0,
+      required: stats?.totalPlayers || 0,
+    },
+    stats,
+  };
 }
 
 /**
@@ -232,15 +269,14 @@ async function voteEndGame() {
       btn.disabled = true;
 
       // Check if session is now completed
-      if (data.sessionStatus === 'completed') {
+      if (data.sessionCompleted) {
         sessionData.status = 'completed';
-        sessionData.results = data.results;
         showResults();
         stopPolling();
       } else {
         // Update vote count
         document.getElementById('end-votes').textContent =
-          `${data.endVotes.current}/${data.endVotes.required}`;
+          `${data.votedCount}/${data.totalPlayers}`;
       }
     } else {
       alert(data.error || 'Failed to submit vote');
