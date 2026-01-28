@@ -17,6 +17,9 @@ let isOwnProfile = false;
  * Initialize the profile page
  */
 async function init() {
+  // Check for active session and show banner
+  await checkActiveSession();
+
   // Check if viewing specific player or own profile
   const urlParams = new URLSearchParams(window.location.search);
   viewingPlayerId = urlParams.get('id');
@@ -52,6 +55,43 @@ async function init() {
 
   // Set up event listeners
   setupEventListeners();
+}
+
+/**
+ * Check if player has an active session and show banner
+ */
+async function checkActiveSession() {
+  const storedSession = window.NeutroniumAuth?.getActiveSession();
+  if (!storedSession?.id) return;
+
+  try {
+    const response = await fetch(`/api/session/${storedSession.id}`);
+    if (!response.ok) {
+      window.NeutroniumAuth?.clearActiveSession();
+      return;
+    }
+
+    const data = await response.json();
+    if (data.session?.status !== 'active') {
+      window.NeutroniumAuth?.clearActiveSession();
+      return;
+    }
+
+    // Session is still active - show banner
+    const banner = document.getElementById('profile-active-session');
+    if (banner) {
+      const level = data.session?.universe_level || storedSession.universeLevel;
+      const boxId = data.session?.box_id || storedSession.boxId;
+
+      document.getElementById('profile-session-level').textContent = level;
+      document.getElementById('profile-session-box').textContent = boxId;
+      document.getElementById('btn-profile-rejoin').href = `/session.html?id=${storedSession.id}`;
+
+      banner.classList.remove('hidden');
+    }
+  } catch (error) {
+    console.error('Error checking active session:', error);
+  }
 }
 
 /**
@@ -274,5 +314,44 @@ function formatDate(dateStr) {
   });
 }
 
+/**
+ * Set up header hide-on-scroll behavior
+ */
+function setupHeaderScroll() {
+  const header = document.querySelector('.header');
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  const scrollThreshold = 50;
+
+  function updateHeader() {
+    const currentScrollY = window.scrollY;
+
+    if (currentScrollY > scrollThreshold) {
+      if (currentScrollY > lastScrollY) {
+        header.classList.add('header-hidden');
+      } else {
+        header.classList.remove('header-hidden');
+      }
+    } else {
+      header.classList.remove('header-hidden');
+    }
+
+    lastScrollY = currentScrollY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateHeader);
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  setupHeaderScroll();
+});

@@ -25,74 +25,150 @@
   </header>
 
   <main class="container">
+    <!-- Hero Section -->
     <section class="hero">
+      <div class="hero-glow"></div>
       <h1>Neutronium Expansion</h1>
       <p class="hero-subtitle">Global Progress Journal</p>
+      <p class="hero-description">Track your scores, compete with friends, and climb the leaderboard across 13 universe levels</p>
     </section>
 
+    <!-- Active Session Banner (shown when player has active session) -->
+    <div id="active-session-banner" class="active-session-banner hidden">
+      <div class="active-session-banner-content">
+        <div class="active-session-banner-icon">&#127918;</div>
+        <div class="active-session-banner-info">
+          <strong>You have an active game!</strong>
+          <p>Level <span id="banner-level">-</span> &bull; Box <span id="banner-box">-</span></p>
+        </div>
+        <a id="btn-rejoin-session" href="#" class="btn btn-primary">
+          <span>Rejoin</span>
+          <span class="btn-icon">&#8594;</span>
+        </a>
+      </div>
+    </div>
+
     <!-- Box Entry Section -->
-    <div id="box-entry" class="card" style="max-width: 500px; margin: 0 auto;">
-      <div class="card-header">
-        <h3 class="card-title">Start Playing</h3>
-        <p class="text-muted">Scan the QR code on your game box or enter your box ID</p>
+    <div id="box-entry" class="card card-glow" style="max-width: 480px; margin: 0 auto;">
+      <!-- Step Indicator -->
+      <div class="step-indicator">
+        <div class="step active" id="step-1">
+          <span class="step-number">1</span>
+          <span class="step-label">Enter Box</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-2">
+          <span class="step-number">2</span>
+          <span class="step-label">Setup</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step-3">
+          <span class="step-number">3</span>
+          <span class="step-label">Play</span>
+        </div>
       </div>
 
       <div id="box-loading" class="loading hidden">
         <div class="spinner"></div>
+        <p class="text-muted mt-md">Checking box...</p>
       </div>
 
+      <!-- Step 1: Enter Box ID -->
       <div id="box-form">
         <div class="form-group">
-          <label class="form-label" for="box-id">Box ID</label>
+          <label class="form-label" for="box-id">
+            <span class="form-label-icon">&#128230;</span>
+            Box ID
+          </label>
           <input
             type="text"
             id="box-id"
-            class="form-input"
+            class="form-input form-input-lg"
             placeholder="NE-2026-00001"
             pattern="NE-\d{4}-\d{5}"
+            autocomplete="off"
           >
+          <p class="form-hint">Find the code on your game box or scan the QR code</p>
         </div>
-        <button type="button" id="btn-check-box" class="btn btn-primary btn-lg" style="width: 100%;">
-          Check Box
+        <button type="button" id="btn-check-box" class="btn btn-primary btn-lg btn-block">
+          <span>Check Box</span>
+          <span class="btn-icon">&#8594;</span>
         </button>
       </div>
 
-      <div id="box-not-found" class="hidden mt-lg">
-        <div class="alert alert-error">
-          Box not found. Would you like to register it?
+      <!-- Box Not Found - Register -->
+      <div id="box-not-found" class="hidden">
+        <div class="alert alert-warning">
+          <span class="alert-icon">&#9888;</span>
+          <div>
+            <strong>New Box Detected</strong>
+            <p>This box isn't registered yet. Let's set it up!</p>
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="register-email">Email (optional, for recovery)</label>
-          <input type="email" id="register-email" class="form-input" placeholder="your@email.com">
+          <label class="form-label" for="register-email">
+            <span class="form-label-icon">&#9993;</span>
+            Email (optional)
+          </label>
+          <input type="email" id="register-email" class="form-input" placeholder="For account recovery">
         </div>
-        <button type="button" id="btn-register-box" class="btn btn-primary btn-lg" style="width: 100%;">
-          Register Box
+        <button type="button" id="btn-register-box" class="btn btn-primary btn-lg btn-block">
+          <span>Register Box</span>
+          <span class="btn-icon">&#10003;</span>
         </button>
       </div>
 
-      <div id="box-found" class="hidden mt-lg">
+      <!-- Box Found -->
+      <div id="box-found" class="hidden">
         <div class="alert alert-success">
-          <strong>Box Found!</strong> <span id="box-status-text"></span>
+          <span class="alert-icon">&#10003;</span>
+          <div>
+            <strong>Box Ready!</strong>
+            <p id="box-status-text">Ready to start a new game.</p>
+          </div>
         </div>
 
-        <!-- No Active Session -->
+        <!-- Start New Session -->
         <div id="start-session" class="hidden">
           <div class="form-group">
-            <label class="form-label" for="player-name">Your Name</label>
+            <label class="form-label" for="player-name">
+              <span class="form-label-icon">&#128100;</span>
+              Your Name
+            </label>
             <input type="text" id="player-name" class="form-input" placeholder="Enter your name" maxlength="50">
           </div>
+
           <div class="form-group">
-            <label class="form-label">Your Figure Color</label>
+            <label class="form-label">
+              <span class="form-label-icon">&#127912;</span>
+              Your Figure Color
+            </label>
             <input type="hidden" id="player-color" value="">
-            <div class="color-picker">
-              <button type="button" class="color-btn" data-color="gray" style="background: #6b7280;" title="Gray"></button>
-              <button type="button" class="color-btn" data-color="pink" style="background: #ec4899;" title="Pink"></button>
-              <button type="button" class="color-btn" data-color="purple" style="background: #8b5cf6;" title="Purple"></button>
-              <button type="button" class="color-btn" data-color="green" style="background: #22c55e;" title="Green"></button>
+            <div class="color-picker-labeled">
+              <button type="button" class="color-btn-labeled" data-color="gray">
+                <span class="color-swatch" style="background: #6b7280;"></span>
+                <span class="color-name">Gray</span>
+              </button>
+              <button type="button" class="color-btn-labeled" data-color="pink">
+                <span class="color-swatch" style="background: #ec4899;"></span>
+                <span class="color-name">Pink</span>
+              </button>
+              <button type="button" class="color-btn-labeled" data-color="purple">
+                <span class="color-swatch" style="background: #8b5cf6;"></span>
+                <span class="color-name">Purple</span>
+              </button>
+              <button type="button" class="color-btn-labeled" data-color="green">
+                <span class="color-swatch" style="background: #22c55e;"></span>
+                <span class="color-name">Green</span>
+              </button>
             </div>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="universe-level">Universe Level</label>
+            <label class="form-label" for="universe-level">
+              <span class="form-label-icon">&#127759;</span>
+              Universe Level
+            </label>
             <select id="universe-level" class="form-input form-select">
               <option value="1">Level 1 - Basic</option>
               <option value="2">Level 2</option>
@@ -109,54 +185,126 @@
               <option value="13">Level 13 - Complete</option>
             </select>
           </div>
-          <button type="button" id="btn-start-session" class="btn btn-primary btn-lg" style="width: 100%;">
-            Start New Game
+
+          <button type="button" id="btn-start-session" class="btn btn-primary btn-lg btn-block">
+            <span>Start New Game</span>
+            <span class="btn-icon">&#9654;</span>
           </button>
         </div>
 
-        <!-- Active Session Exists -->
+        <!-- Join Existing Session -->
         <div id="join-session" class="hidden">
-          <p class="mb-md">
-            <strong>Active Session:</strong> Level <span id="active-level"></span> with <span id="active-players"></span> player(s)
-          </p>
-          <div class="form-group">
-            <label class="form-label" for="join-player-name">Your Name</label>
-            <input type="text" id="join-player-name" class="form-input" placeholder="Enter your name" maxlength="50">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Your Figure Color</label>
-            <input type="hidden" id="join-player-color" value="">
-            <div class="color-picker" id="join-color-picker">
-              <button type="button" class="color-btn" data-color="gray" style="background: #6b7280;" title="Gray"></button>
-              <button type="button" class="color-btn" data-color="pink" style="background: #ec4899;" title="Pink"></button>
-              <button type="button" class="color-btn" data-color="purple" style="background: #8b5cf6;" title="Purple"></button>
-              <button type="button" class="color-btn" data-color="green" style="background: #22c55e;" title="Green"></button>
+          <div class="active-session-info">
+            <div class="session-badge">
+              <span class="session-badge-icon">&#127918;</span>
+              <span>Game in Progress</span>
+            </div>
+            <div class="session-details">
+              <div class="session-detail">
+                <span class="detail-label">Level</span>
+                <span class="detail-value" id="active-level">-</span>
+              </div>
+              <div class="session-detail">
+                <span class="detail-label">Players</span>
+                <span class="detail-value" id="active-players">-</span>
+              </div>
             </div>
           </div>
-          <button type="button" id="btn-join-session" class="btn btn-primary btn-lg" style="width: 100%;">
-            Join Game
+
+          <div class="form-group">
+            <label class="form-label" for="join-player-name">
+              <span class="form-label-icon">&#128100;</span>
+              Your Name
+            </label>
+            <input type="text" id="join-player-name" class="form-input" placeholder="Enter your name" maxlength="50">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <span class="form-label-icon">&#127912;</span>
+              Your Figure Color
+            </label>
+            <input type="hidden" id="join-player-color" value="">
+            <div class="color-picker-labeled" id="join-color-picker">
+              <button type="button" class="color-btn-labeled" data-color="gray">
+                <span class="color-swatch" style="background: #6b7280;"></span>
+                <span class="color-name">Gray</span>
+              </button>
+              <button type="button" class="color-btn-labeled" data-color="pink">
+                <span class="color-swatch" style="background: #ec4899;"></span>
+                <span class="color-name">Pink</span>
+              </button>
+              <button type="button" class="color-btn-labeled" data-color="purple">
+                <span class="color-swatch" style="background: #8b5cf6;"></span>
+                <span class="color-name">Purple</span>
+              </button>
+              <button type="button" class="color-btn-labeled" data-color="green">
+                <span class="color-swatch" style="background: #22c55e;"></span>
+                <span class="color-name">Green</span>
+              </button>
+            </div>
+          </div>
+
+          <button type="button" id="btn-join-session" class="btn btn-primary btn-lg btn-block">
+            <span>Join Game</span>
+            <span class="btn-icon">&#8594;</span>
           </button>
         </div>
       </div>
 
-      <div id="box-error" class="hidden mt-lg">
-        <div class="alert alert-error" id="error-message"></div>
-        <button type="button" id="btn-retry" class="btn btn-secondary mt-md">
-          Try Again
+      <!-- Error State -->
+      <div id="box-error" class="hidden">
+        <div class="alert alert-error">
+          <span class="alert-icon">&#10060;</span>
+          <div>
+            <strong>Something went wrong</strong>
+            <p id="error-message">Please try again.</p>
+          </div>
+        </div>
+        <button type="button" id="btn-retry" class="btn btn-secondary btn-block">
+          <span>Try Again</span>
         </button>
       </div>
     </div>
 
     <!-- Leaderboard Preview -->
-    <section class="mt-xl">
-      <h2 class="text-center mb-lg">Top Players</h2>
+    <section class="leaderboard-section mt-2xl">
+      <div class="section-header">
+        <h2>
+          <span class="section-icon">&#127942;</span>
+          Top Players
+        </h2>
+        <a href="/leaderboard.html" class="btn btn-ghost btn-sm">View All</a>
+      </div>
       <div id="leaderboard-preview" class="card">
         <div class="loading">
           <div class="spinner"></div>
         </div>
       </div>
-      <div class="text-center mt-md">
-        <a href="/leaderboard.html" class="btn btn-secondary">View Full Leaderboard</a>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works mt-2xl">
+      <h2 class="text-center mb-lg">
+        <span class="section-icon">&#128161;</span>
+        How It Works
+      </h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#128230;</div>
+          <h3>1. Scan Your Box</h3>
+          <p>Enter your game box ID or scan the QR code to get started</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127918;</div>
+          <h3>2. Play Together</h3>
+          <p>Start a session and invite friends to join your game</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127942;</div>
+          <h3>3. Track Progress</h3>
+          <p>Submit scores and climb the global leaderboard</p>
+        </div>
       </div>
     </section>
   </main>

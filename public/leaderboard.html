@@ -25,6 +25,21 @@
   </header>
 
   <main class="container">
+    <!-- Active Session Banner -->
+    <div id="leaderboard-active-session" class="active-session-banner mt-lg hidden">
+      <div class="active-session-banner-content">
+        <div class="active-session-banner-icon">&#127918;</div>
+        <div class="active-session-banner-info">
+          <strong>You have an active game!</strong>
+          <p>Level <span id="leaderboard-session-level">-</span> &bull; Box <span id="leaderboard-session-box">-</span></p>
+        </div>
+        <a id="btn-leaderboard-rejoin" href="#" class="btn btn-primary">
+          <span>Rejoin</span>
+          <span class="btn-icon">&#8594;</span>
+        </a>
+      </div>
+    </div>
+
     <section class="hero">
       <h1>Global Leaderboard</h1>
       <p class="hero-subtitle">Top players across all universe levels</p>
@@ -103,6 +118,7 @@
     </div>
   </footer>
 
+  <script src="/js/auth.js"></script>
   <script src="/js/leaderboard.js"></script>
 </body>
 </html>

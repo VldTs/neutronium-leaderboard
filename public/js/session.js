@@ -81,6 +81,16 @@ async function loadSession() {
 
     // Transform API response to expected format
     sessionData = transformApiResponse(apiData);
+
+    // Store active session for rejoin capability (if session is active)
+    if (sessionData.status === 'active') {
+      window.NeutroniumAuth?.setActiveSession({
+        id: sessionData.id,
+        box_id: sessionData.boxId,
+        universe_level: sessionData.universeLevel,
+      });
+    }
+
     renderSession();
   } catch (error) {
     console.error('Error loading session:', error);
@@ -329,6 +339,9 @@ async function voteEndGame() {
  * Show results modal
  */
 function showResults() {
+  // Clear active session since game is over
+  window.NeutroniumAuth?.clearActiveSession();
+
   const content = document.getElementById('results-content');
   const results = sessionData.results || sessionData.players.filter(p => p.finalNn !== null);
 
@@ -439,5 +452,44 @@ function escapeHtml(str) {
 // Clean up on page unload
 window.addEventListener('beforeunload', stopPolling);
 
+/**
+ * Set up header hide-on-scroll behavior
+ */
+function setupHeaderScroll() {
+  const header = document.querySelector('.header');
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  const scrollThreshold = 50;
+
+  function updateHeader() {
+    const currentScrollY = window.scrollY;
+
+    if (currentScrollY > scrollThreshold) {
+      if (currentScrollY > lastScrollY) {
+        header.classList.add('header-hidden');
+      } else {
+        header.classList.remove('header-hidden');
+      }
+    } else {
+      header.classList.remove('header-hidden');
+    }
+
+    lastScrollY = currentScrollY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateHeader);
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  setupHeaderScroll();
+});

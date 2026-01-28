@@ -94,13 +94,20 @@ export async function onRequest(context) {
     // Check if player already in session
     const { data: existingEntry } = await supabase
       .from('session_players')
-      .select('id')
+      .select('*')
       .eq('session_id', sessionId)
       .eq('player_id', player.id)
       .single();
 
     if (existingEntry) {
-      return withCors(errorResponse('Player already in session', 409), env);
+      // Player already in session - return success (allow rejoin)
+      return withCors(jsonResponse({
+        success: true,
+        session,
+        player,
+        sessionPlayer: existingEntry,
+        rejoined: true,
+      }), env);
     }
 
     // Add player to session
@@ -123,6 +130,7 @@ export async function onRequest(context) {
       session,
       player,
       sessionPlayer,
+      rejoined: false,
     }), env);
   } catch (error) {
     console.error('Session join error:', error);

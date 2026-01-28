@@ -25,6 +25,21 @@
   </header>
 
   <main class="container">
+    <!-- Active Session Banner -->
+    <div id="profile-active-session" class="active-session-banner mt-lg hidden">
+      <div class="active-session-banner-content">
+        <div class="active-session-banner-icon">&#127918;</div>
+        <div class="active-session-banner-info">
+          <strong>You have an active game!</strong>
+          <p>Level <span id="profile-session-level">-</span> &bull; Box <span id="profile-session-box">-</span></p>
+        </div>
+        <a id="btn-profile-rejoin" href="#" class="btn btn-primary">
+          <span>Rejoin</span>
+          <span class="btn-icon">&#8594;</span>
+        </a>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div id="profile-loading" class="loading mt-xl">
       <div class="spinner"></div>

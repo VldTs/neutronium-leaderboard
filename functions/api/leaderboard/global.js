@@ -40,20 +40,20 @@ export async function onRequest(context) {
       if (!playerScores.has(playerId)) {
         playerScores.set(playerId, {
           playerId,
-          displayName: record.players.display_name,
+          name: record.players.display_name,
           isGuest: record.players.is_guest,
-          totalNn: 0,
+          totalBestNn: 0,
           levelsCompleted: 0,
         });
       }
       const player = playerScores.get(playerId);
-      player.totalNn += record.best_nn || 0;
+      player.totalBestNn += record.best_nn || 0;
       player.levelsCompleted += 1;
     }
 
     // Sort by total Nn descending
     const sortedRankings = Array.from(playerScores.values())
-      .sort((a, b) => b.totalNn - a.totalNn)
+      .sort((a, b) => b.totalBestNn - a.totalBestNn)
       .slice(offset, offset + limit)
       .map((player, index) => ({
         rank: offset + index + 1,

@@ -19,6 +19,9 @@ const pageSize = 50;
  * Initialize the leaderboard page
  */
 async function init() {
+  // Check for active session
+  await checkActiveSession();
+
   // Check for level in URL
   const urlParams = new URLSearchParams(window.location.search);
   const levelParam = urlParams.get('level');
@@ -31,12 +34,50 @@ async function init() {
 
   // Update active tab
   updateActiveTabs();
+  updateScoreHeader();
 
   // Load leaderboard
   await loadLeaderboard();
 
   // Load user position if logged in
   await loadUserPosition();
+}
+
+/**
+ * Check if player has an active session and show banner
+ */
+async function checkActiveSession() {
+  const storedSession = window.NeutroniumAuth?.getActiveSession();
+  if (!storedSession?.id) return;
+
+  try {
+    const response = await fetch(`/api/session/${storedSession.id}`);
+    if (!response.ok) {
+      window.NeutroniumAuth?.clearActiveSession();
+      return;
+    }
+
+    const data = await response.json();
+    if (data.session?.status !== 'active') {
+      window.NeutroniumAuth?.clearActiveSession();
+      return;
+    }
+
+    // Session is still active - show banner
+    const banner = document.getElementById('leaderboard-active-session');
+    if (banner) {
+      const level = data.session?.universe_level || storedSession.universeLevel;
+      const boxId = data.session?.box_id || storedSession.boxId;
+
+      document.getElementById('leaderboard-session-level').textContent = level;
+      document.getElementById('leaderboard-session-box').textContent = boxId;
+      document.getElementById('btn-leaderboard-rejoin').href = `/session.html?id=${storedSession.id}`;
+
+      banner.classList.remove('hidden');
+    }
+  } catch (error) {
+    console.error('Error checking active session:', error);
+  }
 }
 
 /**
@@ -135,21 +176,25 @@ async function loadLeaderboard() {
  * @param {Object} data - Leaderboard data
  */
 function renderLeaderboard(data) {
-  const currentPlayerId = localStorage.getItem('neutronium_guest_id');
+  const currentPlayerId = window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
 
   rankingsBody.innerHTML = data.rankings.map(player => {
     const isMe = player.playerId === currentPlayerId;
     const rankClass = player.rank <= 3 ? `rank-${player.rank}` : '';
-    const score = currentLevel === 'all' ? player.totalBestNn : player.bestNn;
+    // Handle both field name variations
+    const playerName = player.name || player.displayName || 'Unknown';
+    const score = currentLevel === 'all'
+      ? (player.totalBestNn || player.totalNn || 0)
+      : (player.bestNn || 0);
     const levelsInfo = currentLevel === 'all'
-      ? player.levelsCompleted
+      ? `${player.levelsCompleted || 0}`
       : formatDate(player.achievedAt);
 
     return `
       <tr ${isMe ? 'style="background: rgba(139, 92, 246, 0.1);"' : ''}>
         <td class="rank-cell ${rankClass}">#${player.rank}</td>
         <td>
-          <a href="/profile.html?id=${player.playerId}">${escapeHtml(player.name)}</a>
+          <a href="/profile.html?id=${player.playerId}">${escapeHtml(playerName)}</a>
           ${isMe ? '<span class="badge badge-you ml-sm">You</span>' : ''}
         </td>
         <td class="nn-value">${score}</td>
@@ -191,8 +236,8 @@ function updatePagination(total) {
  * Load current user's position
  */
 async function loadUserPosition() {
-  // For now, just check if we have a guest ID
-  const playerId = localStorage.getItem('neutronium_guest_id');
+  // Get player ID from auth or localStorage
+  const playerId = window.NeutroniumAuth?.getPlayerId() || localStorage.getItem('neutronium_guest_id');
   if (!playerId) {
     yourPosition.classList.add('hidden');
     return;
@@ -207,11 +252,13 @@ async function loadUserPosition() {
 
     const data = await response.json();
 
-    if (data.stats) {
+    if (data.stats && data.stats.totalBestNn > 0) {
       yourPosition.classList.remove('hidden');
       document.getElementById('your-rank').textContent = data.stats.globalRank ? `#${data.stats.globalRank}` : '-';
       document.getElementById('your-score').textContent = data.stats.totalBestNn || 0;
-      document.getElementById('your-levels').textContent = `${data.stats.highestLevel || 0} levels completed`;
+      document.getElementById('your-levels').textContent = `${data.stats.levelsCompleted || 0} levels completed`;
+    } else {
+      yourPosition.classList.add('hidden');
     }
   } catch (error) {
     console.error('Error loading user position:', error);
@@ -241,5 +288,44 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+/**
+ * Set up header hide-on-scroll behavior
+ */
+function setupHeaderScroll() {
+  const header = document.querySelector('.header');
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  const scrollThreshold = 50;
+
+  function updateHeader() {
+    const currentScrollY = window.scrollY;
+
+    if (currentScrollY > scrollThreshold) {
+      if (currentScrollY > lastScrollY) {
+        header.classList.add('header-hidden');
+      } else {
+        header.classList.remove('header-hidden');
+      }
+    } else {
+      header.classList.remove('header-hidden');
+    }
+
+    lastScrollY = currentScrollY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateHeader);
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  setupHeaderScroll();
+});

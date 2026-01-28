@@ -4,6 +4,7 @@
 
 const AUTH_STORAGE_KEY = 'neutronium_guest_id';
 const PLAYER_NAME_KEY = 'neutronium_player_name';
+const ACTIVE_SESSION_KEY = 'neutronium_active_session';
 
 /**
  * Get or create a guest ID for anonymous players
@@ -97,6 +98,44 @@ function getPlayerId() {
   return localStorage.getItem(AUTH_STORAGE_KEY);
 }
 
+/**
+ * Set active session data
+ * @param {Object} sessionData - Session data including id, boxId, universeLevel
+ */
+function setActiveSession(sessionData) {
+  if (sessionData) {
+    localStorage.setItem(ACTIVE_SESSION_KEY, JSON.stringify({
+      id: sessionData.id,
+      boxId: sessionData.box_id || sessionData.boxId,
+      universeLevel: sessionData.universe_level || sessionData.universeLevel,
+      joinedAt: new Date().toISOString(),
+    }));
+  }
+}
+
+/**
+ * Get active session data
+ * @returns {Object|null} Session data or null
+ */
+function getActiveSession() {
+  const data = localStorage.getItem(ACTIVE_SESSION_KEY);
+  if (data) {
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Clear active session data
+ */
+function clearActiveSession() {
+  localStorage.removeItem(ACTIVE_SESSION_KEY);
+}
+
 // Export for use in other scripts
 window.NeutroniumAuth = {
   getOrCreateGuestId,
@@ -107,4 +146,7 @@ window.NeutroniumAuth = {
   isLoggedIn,
   setPlayerId,
   getPlayerId,
+  setActiveSession,
+  getActiveSession,
+  clearActiveSession,
 };

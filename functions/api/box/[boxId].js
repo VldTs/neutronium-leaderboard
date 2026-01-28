@@ -52,11 +52,32 @@ async function handleGet(supabase, boxId) {
     throw sessionError;
   }
 
+  // If there's an active session, get taken colors
+  let takenColors = [];
+  let playerCount = 0;
+  if (activeSession) {
+    const { data: sessionPlayers, error: playersError } = await supabase
+      .from('session_players')
+      .select('race')
+      .eq('session_id', activeSession.id);
+
+    if (!playersError && sessionPlayers) {
+      playerCount = sessionPlayers.length;
+      takenColors = sessionPlayers
+        .map(p => p.race)
+        .filter(color => color !== null);
+    }
+  }
+
   return jsonResponse({
     boxId,
     registered: !!box,
     box: box || null,
-    activeSession: activeSession || null,
+    activeSession: activeSession ? {
+      ...activeSession,
+      playerCount,
+      takenColors,
+    } : null,
   });
 }
 

@@ -60,7 +60,10 @@ export async function onRequest(context) {
       .single();
 
     if (existingSession) {
-      return withCors(errorResponse('Box already has an active session', 409), env);
+      return withCors(jsonResponse({
+        error: 'Box already has an active session',
+        sessionId: existingSession.id,
+      }, 409), env);
     }
 
     // Get or create player

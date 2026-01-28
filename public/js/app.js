@@ -20,6 +20,9 @@ let activeSession = null;
  * Initialize the app
  */
 async function init() {
+  // Check for active session first
+  await checkActiveSession();
+
   // Check for box ID in URL params
   const urlParams = new URLSearchParams(window.location.search);
   const boxParam = urlParams.get('box');
@@ -46,6 +49,54 @@ async function init() {
 }
 
 /**
+ * Check if player has an active session and show banner
+ */
+async function checkActiveSession() {
+  const storedSession = window.NeutroniumAuth?.getActiveSession();
+  if (!storedSession?.id) return;
+
+  try {
+    // Verify session is still active
+    const response = await fetch(`/api/session/${storedSession.id}`);
+    if (!response.ok) {
+      // Session no longer exists or ended
+      window.NeutroniumAuth?.clearActiveSession();
+      return;
+    }
+
+    const data = await response.json();
+    if (data.session?.status !== 'active') {
+      // Session ended
+      window.NeutroniumAuth?.clearActiveSession();
+      return;
+    }
+
+    // Session is still active - show banner
+    showActiveSessionBanner(storedSession, data.session);
+  } catch (error) {
+    console.error('Error checking active session:', error);
+    // Don't clear on network error - might be temporary
+  }
+}
+
+/**
+ * Show the active session banner
+ */
+function showActiveSessionBanner(storedSession, sessionData) {
+  const banner = document.getElementById('active-session-banner');
+  if (!banner) return;
+
+  const level = sessionData?.universe_level || storedSession.universeLevel;
+  const boxId = sessionData?.box_id || storedSession.boxId;
+
+  document.getElementById('banner-level').textContent = level;
+  document.getElementById('banner-box').textContent = boxId;
+  document.getElementById('btn-rejoin-session').href = `/session.html?id=${storedSession.id}`;
+
+  banner.classList.remove('hidden');
+}
+
+/**
  * Set up event listeners
  */
 function setupEventListeners() {
@@ -61,20 +112,27 @@ function setupEventListeners() {
   document.getElementById('btn-retry')?.addEventListener('click', resetForm);
 
   // Color picker for start session
-  document.querySelectorAll('#start-session .color-btn').forEach(btn => {
-    btn.addEventListener('click', () => selectColor(btn.dataset.color, 'player-color', '#start-session'));
+  document.querySelectorAll('#start-session .color-btn-labeled').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!btn.classList.contains('disabled')) {
+        selectColor(btn.dataset.color, 'player-color', '#start-session');
+      }
+    });
   });
 
   // Color picker for join session
-  document.querySelectorAll('#join-session .color-btn').forEach(btn => {
-    btn.addEventListener('click', () => selectColor(btn.dataset.color, 'join-player-color', '#join-session'));
+  document.querySelectorAll('#join-session .color-btn-labeled').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!btn.classList.contains('disabled')) {
+        selectColor(btn.dataset.color, 'join-player-color', '#join-session');
+      }
+    });
   });
 
-  // Restore saved color
+  // Restore saved color for start session (join session will be handled when showing)
   const savedColor = localStorage.getItem('neutronium_player_color');
   if (savedColor) {
     selectColor(savedColor, 'player-color', '#start-session');
-    selectColor(savedColor, 'join-player-color', '#join-session');
   }
 }
 
@@ -82,11 +140,28 @@ function setupEventListeners() {
  * Select a figure color
  */
 function selectColor(color, inputId, containerSelector) {
+  // Check if color is disabled (taken)
+  const btn = document.querySelector(`${containerSelector} .color-btn-labeled[data-color="${color}"]`);
+  if (btn && btn.classList.contains('disabled')) {
+    return; // Don't select disabled colors
+  }
+
   document.getElementById(inputId).value = color;
-  document.querySelectorAll(`${containerSelector} .color-btn`).forEach(btn => {
-    btn.classList.toggle('selected', btn.dataset.color === color);
+  document.querySelectorAll(`${containerSelector} .color-btn-labeled`).forEach(b => {
+    b.classList.toggle('selected', b.dataset.color === color);
   });
   localStorage.setItem('neutronium_player_color', color);
+}
+
+/**
+ * Update step indicator
+ */
+function updateStepIndicator(step) {
+  document.querySelectorAll('.step').forEach((el, idx) => {
+    el.classList.remove('active', 'completed');
+    if (idx + 1 < step) el.classList.add('completed');
+    if (idx + 1 === step) el.classList.add('active');
+  });
 }
 
 /**
@@ -169,6 +244,7 @@ async function registerBox() {
  */
 function showBoxFound(data) {
   showSection(boxFound);
+  updateStepIndicator(2);
 
   const statusText = document.getElementById('box-status-text');
   const startSession = document.getElementById('start-session');
@@ -177,22 +253,54 @@ function showBoxFound(data) {
   if (data.activeSession) {
     // Active session exists
     activeSession = data.activeSession;
-    statusText.textContent = 'An active session is in progress.';
+    statusText.textContent = 'Join the game in progress!';
     startSession.classList.add('hidden');
     joinSession.classList.remove('hidden');
 
     // Handle both snake_case (API) and camelCase
     const level = data.activeSession.universe_level || data.activeSession.universeLevel;
     document.getElementById('active-level').textContent = level;
-    // Player count needs to be fetched from session details or estimated
     document.getElementById('active-players').textContent = data.activeSession.playerCount || '?';
+
+    // Disable taken colors
+    const takenColors = data.activeSession.takenColors || [];
+    updateColorAvailability('#join-session', takenColors);
+
+    // Try to restore saved color if available
+    const savedColor = localStorage.getItem('neutronium_player_color');
+    if (savedColor && !takenColors.includes(savedColor)) {
+      selectColor(savedColor, 'join-player-color', '#join-session');
+    }
   } else {
     // No active session
     activeSession = null;
-    statusText.textContent = 'Ready to start a new game.';
+    statusText.textContent = 'Set up your player and start!';
     startSession.classList.remove('hidden');
     joinSession.classList.add('hidden');
+
+    // Reset all colors to available for new session
+    updateColorAvailability('#start-session', []);
   }
+}
+
+/**
+ * Update color picker availability based on taken colors
+ */
+function updateColorAvailability(containerSelector, takenColors) {
+  document.querySelectorAll(`${containerSelector} .color-btn-labeled`).forEach(btn => {
+    const color = btn.dataset.color;
+    const isTaken = takenColors.includes(color);
+
+    btn.classList.toggle('disabled', isTaken);
+    btn.disabled = isTaken;
+
+    // If currently selected color is now taken, deselect it
+    if (isTaken && btn.classList.contains('selected')) {
+      btn.classList.remove('selected');
+      const inputId = containerSelector === '#start-session' ? 'player-color' : 'join-player-color';
+      document.getElementById(inputId).value = '';
+    }
+  });
 }
 
 /**
@@ -239,6 +347,8 @@ async function startSession() {
       if (data.player?.id) {
         window.NeutroniumAuth?.setPlayerId(data.player.id);
       }
+      // Store active session for rejoin capability
+      window.NeutroniumAuth?.setActiveSession(data.session);
       // Redirect to session page
       window.location.href = `/session.html?id=${data.session.id}`;
     } else if (response.status === 409) {
@@ -306,6 +416,8 @@ async function joinSession() {
       if (data.player?.id) {
         window.NeutroniumAuth?.setPlayerId(data.player.id);
       }
+      // Store active session for rejoin capability
+      window.NeutroniumAuth?.setActiveSession(data.session);
       // Redirect to session page
       window.location.href = `/session.html?id=${data.session.id}`;
     } else {
@@ -408,9 +520,11 @@ function showError(message) {
  */
 function resetForm() {
   hideAllSections();
+  boxForm.classList.remove('hidden');
   boxIdInput.value = '';
   currentBoxId = null;
   activeSession = null;
+  updateStepIndicator(1);
 }
 
 /**
@@ -424,5 +538,48 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+/**
+ * Set up header hide-on-scroll behavior
+ */
+function setupHeaderScroll() {
+  const header = document.querySelector('.header');
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  const scrollThreshold = 50; // Minimum scroll before hiding
+
+  function updateHeader() {
+    const currentScrollY = window.scrollY;
+
+    // Only hide if scrolled past threshold
+    if (currentScrollY > scrollThreshold) {
+      if (currentScrollY > lastScrollY) {
+        // Scrolling down - hide header
+        header.classList.add('header-hidden');
+      } else {
+        // Scrolling up - show header
+        header.classList.remove('header-hidden');
+      }
+    } else {
+      // At top - always show header
+      header.classList.remove('header-hidden');
+    }
+
+    lastScrollY = currentScrollY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateHeader);
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  setupHeaderScroll();
+});
