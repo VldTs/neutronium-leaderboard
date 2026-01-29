@@ -5,11 +5,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'GET') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -66,9 +66,9 @@ export async function onRequest(context) {
       total: playerScores.size,
       limit,
       offset,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Leaderboard API error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

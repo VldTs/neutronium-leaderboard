@@ -6,16 +6,16 @@ export async function onRequest(context) {
   const level = parseInt(params.level, 10);
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'GET') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   // Validate level
   if (isNaN(level) || level < 1 || level > 13) {
-    return withCors(errorResponse('Level must be between 1 and 13', 400), env);
+    return withCors(errorResponse('Level must be between 1 and 13', 400), request, env);
   }
 
   try {
@@ -56,9 +56,9 @@ export async function onRequest(context) {
       level,
       limit,
       offset,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Level leaderboard API error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

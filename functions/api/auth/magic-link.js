@@ -8,11 +8,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'POST') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -22,19 +22,21 @@ export async function onRequest(context) {
 
     // Validate email
     if (!email || !email.includes('@')) {
-      return withCors(errorResponse('Valid email is required'), env);
+      return withCors(errorResponse('Valid email is required'), request, env);
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    // Derive app origin from the incoming request (works in both dev and production)
+    const requestOrigin = new URL(request.url).origin;
+    const appOrigin = env.APP_URL || requestOrigin;
 
     // Validate returnUrl if provided (must be same origin)
     let validatedReturnUrl = null;
     if (returnUrl) {
       try {
-        const appUrl = new URL(env.APP_URL || 'http://localhost:8788');
         const returnUrlObj = new URL(returnUrl);
-        // Only allow same-origin return URLs
-        if (returnUrlObj.origin === appUrl.origin) {
+        if (returnUrlObj.origin === appOrigin || returnUrlObj.origin === requestOrigin) {
           validatedReturnUrl = returnUrl;
         }
       } catch {
@@ -69,7 +71,7 @@ export async function onRequest(context) {
     }
 
     // Build the magic link with optional return URL
-    const verifyUrl = new URL(`${env.APP_URL || 'http://localhost:8788'}/api/auth/verify`);
+    const verifyUrl = new URL(`${appOrigin}/api/auth/verify`);
     verifyUrl.searchParams.set('token', token);
     if (validatedReturnUrl) {
       verifyUrl.searchParams.set('return_url', validatedReturnUrl);
@@ -78,18 +80,18 @@ export async function onRequest(context) {
 
     // Send the magic link email
     try {
-      await sendMagicLinkEmail(normalizedEmail, token, env, validatedReturnUrl);
+      await sendMagicLinkEmail(normalizedEmail, token, env, validatedReturnUrl, appOrigin);
     } catch (emailError) {
       console.error('Email send error:', emailError);
 
       // For development: show the magic link in console and return it (keep the token)
-      if (env.APP_URL?.includes('localhost')) {
+      if (appOrigin.includes('localhost')) {
         console.log('DEV MODE - Magic link:', magicLink);
         return withCors(jsonResponse({
           success: true,
           message: 'Dev mode: Check console for magic link (email sending failed)',
           devLink: magicLink,
-        }), env);
+        }), request, env);
       }
 
       // Clean up the token if email fails in production
@@ -107,9 +109,9 @@ export async function onRequest(context) {
         ? 'Check your email! A sign-in link has been sent.'
         : 'Check your email! A sign-in link has been sent to create your account.',
       existingAccount: !!existingPlayer,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Magic link error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

@@ -60,11 +60,12 @@ export function generateToken(length = 32) {
  * @param {string} token - Magic link token
  * @param {Object} env - Environment variables
  * @param {string|null} returnUrl - Optional URL to redirect after sign in
+ * @param {string|null} appOrigin - App origin derived from request (fallback to env.APP_URL)
  * @returns {Promise<Object>} - Resend API response
  */
-export async function sendMagicLinkEmail(email, token, env, returnUrl = null) {
-  const appUrl = env.APP_URL || 'http://localhost:8788';
-  const verifyUrl = new URL(`${appUrl}/api/auth/verify`);
+export async function sendMagicLinkEmail(email, token, env, returnUrl = null, appOrigin = null) {
+  const baseUrl = appOrigin || env.APP_URL || 'http://localhost:8788';
+  const verifyUrl = new URL(`${baseUrl}/api/auth/verify`);
   verifyUrl.searchParams.set('token', token);
   if (returnUrl) {
     verifyUrl.searchParams.set('return_url', returnUrl);

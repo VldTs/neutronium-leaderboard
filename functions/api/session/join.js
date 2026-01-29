@@ -142,11 +142,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'POST') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -156,16 +156,16 @@ export async function onRequest(context) {
 
     // Validate required fields
     if (!sessionId) {
-      return withCors(errorResponse('sessionId is required'), env);
+      return withCors(errorResponse('sessionId is required'), request, env);
     }
     if (!playerName) {
-      return withCors(errorResponse('playerName is required'), env);
+      return withCors(errorResponse('playerName is required'), request, env);
     }
 
     // Validate color if provided
     const validColors = ['gray', 'pink', 'purple', 'green'];
     if (playerColor && !validColors.includes(playerColor)) {
-      return withCors(errorResponse(`playerColor must be one of: ${validColors.join(', ')}`), env);
+      return withCors(errorResponse(`playerColor must be one of: ${validColors.join(', ')}`), request, env);
     }
 
     // Check if session exists and is active
@@ -176,11 +176,11 @@ export async function onRequest(context) {
       .single();
 
     if (sessionError || !session) {
-      return withCors(errorResponse('Session not found', 404), env);
+      return withCors(errorResponse('Session not found', 404), request, env);
     }
 
     if (session.status !== 'active') {
-      return withCors(errorResponse('Session is not active', 400), env);
+      return withCors(errorResponse('Session is not active', 400), request, env);
     }
 
     // Get or create player
@@ -277,7 +277,7 @@ export async function onRequest(context) {
         levelChanged,
         previousLevel: levelChanged ? previousLevel : undefined,
         newLevel: levelChanged ? newLevel : undefined,
-      }), env);
+      }), request, env);
     }
 
     // Add player to session
@@ -310,9 +310,9 @@ export async function onRequest(context) {
       levelChanged,
       previousLevel: levelChanged ? previousLevel : undefined,
       newLevel: levelChanged ? newLevel : undefined,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Session join error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

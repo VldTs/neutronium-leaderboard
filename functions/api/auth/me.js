@@ -8,7 +8,7 @@ import { jsonResponse, errorResponse, handleCors, withCors } from '../../_shared
 import { createSupabaseClient } from '../../_shared/supabase.js';
 
 export async function onRequestOptions(context) {
-  return handleCors(context.env);
+  return handleCors(context.request, context.env);
 }
 
 export async function onRequestGet(context) {
@@ -25,7 +25,7 @@ export async function onRequestGet(context) {
           player: null,
           authenticated: false,
         }),
-        env
+        request, env
       );
     }
 
@@ -44,7 +44,7 @@ export async function onRequestGet(context) {
           player: null,
           authenticated: false,
         }),
-        env
+        request, env
       );
     }
 
@@ -60,10 +60,10 @@ export async function onRequestGet(context) {
         },
         authenticated: true,
       }),
-      env
+      request, env
     );
   } catch (error) {
     console.error('Error in /api/auth/me:', error);
-    return withCors(errorResponse('Internal server error', 500), env);
+    return withCors(errorResponse('Internal server error', 500), request, env);
   }
 }

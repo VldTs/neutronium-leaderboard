@@ -6,25 +6,25 @@ export async function onRequest(context) {
   const boxId = params.boxId;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   try {
     const supabase = createSupabaseClient(env);
 
     if (request.method === 'GET') {
-      return withCors(await handleGet(supabase, boxId), env);
+      return withCors(await handleGet(supabase, boxId), request, env);
     }
 
     if (request.method === 'POST') {
       const body = await request.json();
-      return withCors(await handlePost(supabase, boxId, body), env);
+      return withCors(await handlePost(supabase, boxId, body), request, env);
     }
 
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   } catch (error) {
     console.error('Box API error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }
 

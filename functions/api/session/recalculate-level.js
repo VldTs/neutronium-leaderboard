@@ -62,11 +62,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'POST') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -76,7 +76,7 @@ export async function onRequest(context) {
 
     // Validate required fields
     if (!sessionId) {
-      return withCors(errorResponse('sessionId is required'), env);
+      return withCors(errorResponse('sessionId is required'), request, env);
     }
 
     // Check if session exists and is active
@@ -87,11 +87,11 @@ export async function onRequest(context) {
       .single();
 
     if (sessionError || !session) {
-      return withCors(errorResponse('Session not found', 404), env);
+      return withCors(errorResponse('Session not found', 404), request, env);
     }
 
     if (session.status !== 'active') {
-      return withCors(errorResponse('Session is not active', 400), env);
+      return withCors(errorResponse('Session is not active', 400), request, env);
     }
 
     const previousLevel = session.universe_level;
@@ -108,7 +108,7 @@ export async function onRequest(context) {
         success: true,
         session,
         levelChanged: false,
-      }), env);
+      }), request, env);
     }
 
     console.log(`Recalculating level for session ${sessionId} with ${sessionPlayers.length} players`);
@@ -143,7 +143,7 @@ export async function onRequest(context) {
 
       if (updateError) {
         console.error('Error updating session level:', updateError);
-        return withCors(errorResponse('Failed to update session level', 500), env);
+        return withCors(errorResponse('Failed to update session level', 500), request, env);
       }
 
       return withCors(jsonResponse({
@@ -153,7 +153,7 @@ export async function onRequest(context) {
         newLevel: newSessionLevel,
         levelChanged: true,
         playerLevels: playerMaxLevels,
-      }), env);
+      }), request, env);
     }
 
     return withCors(jsonResponse({
@@ -161,9 +161,9 @@ export async function onRequest(context) {
       session,
       levelChanged: false,
       playerLevels: playerMaxLevels,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Recalculate level error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

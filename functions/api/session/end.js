@@ -5,11 +5,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'POST') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -19,10 +19,10 @@ export async function onRequest(context) {
 
     // Validate required fields
     if (!sessionId) {
-      return withCors(errorResponse('sessionId is required'), env);
+      return withCors(errorResponse('sessionId is required'), request, env);
     }
     if (!playerId) {
-      return withCors(errorResponse('playerId is required'), env);
+      return withCors(errorResponse('playerId is required'), request, env);
     }
 
     // Check if session exists and is active
@@ -33,11 +33,11 @@ export async function onRequest(context) {
       .single();
 
     if (sessionError || !session) {
-      return withCors(errorResponse('Session not found', 404), env);
+      return withCors(errorResponse('Session not found', 404), request, env);
     }
 
     if (session.status !== 'active') {
-      return withCors(errorResponse('Session is not active', 400), env);
+      return withCors(errorResponse('Session is not active', 400), request, env);
     }
 
     // Check if player is in the session
@@ -49,7 +49,7 @@ export async function onRequest(context) {
       .single();
 
     if (playerError || !sessionPlayer) {
-      return withCors(errorResponse('Player not in session', 404), env);
+      return withCors(errorResponse('Player not in session', 404), request, env);
     }
 
     // Mark player as voted to end
@@ -93,7 +93,7 @@ export async function onRequest(context) {
         success: true,
         sessionCompleted: true,
         message: 'All players voted - session completed',
-      }), env);
+      }), request, env);
     }
 
     // Get vote count for response
@@ -105,9 +105,9 @@ export async function onRequest(context) {
       votedCount,
       totalPlayers: allPlayers.length,
       message: `Vote recorded (${votedCount}/${allPlayers.length})`,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('End session error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

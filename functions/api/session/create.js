@@ -5,11 +5,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'POST') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -19,19 +19,19 @@ export async function onRequest(context) {
 
     // Validate required fields
     if (!boxId) {
-      return withCors(errorResponse('boxId is required'), env);
+      return withCors(errorResponse('boxId is required'), request, env);
     }
     if (!universeLevel || universeLevel < 1 || universeLevel > 13) {
-      return withCors(errorResponse('universeLevel must be between 1 and 13'), env);
+      return withCors(errorResponse('universeLevel must be between 1 and 13'), request, env);
     }
     if (!playerName) {
-      return withCors(errorResponse('playerName is required'), env);
+      return withCors(errorResponse('playerName is required'), request, env);
     }
 
     // Validate color if provided
     const validColors = ['gray', 'pink', 'purple', 'green'];
     if (playerColor && !validColors.includes(playerColor)) {
-      return withCors(errorResponse(`playerColor must be one of: ${validColors.join(', ')}`), env);
+      return withCors(errorResponse(`playerColor must be one of: ${validColors.join(', ')}`), request, env);
     }
 
     // Check if box exists, create if not
@@ -63,7 +63,7 @@ export async function onRequest(context) {
       return withCors(jsonResponse({
         error: 'Box already has an active session',
         sessionId: existingSession.id,
-      }, 409), env);
+      }, 409), request, env);
     }
 
     // Get or create player
@@ -144,9 +144,9 @@ export async function onRequest(context) {
       success: true,
       session,
       player,
-    }, 201), env);
+    }, 201), request, env);
   } catch (error) {
     console.error('Session create error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

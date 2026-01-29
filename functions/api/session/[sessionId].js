@@ -6,11 +6,11 @@ export async function onRequest(context) {
   const sessionId = params.sessionId;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'GET') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -29,7 +29,7 @@ export async function onRequest(context) {
 
     if (sessionError) {
       if (sessionError.code === 'PGRST116') {
-        return withCors(errorResponse('Session not found', 404), env);
+        return withCors(errorResponse('Session not found', 404), request, env);
       }
       throw sessionError;
     }
@@ -136,9 +136,9 @@ export async function onRequest(context) {
       responsePayload.referenceScores = refScores;
     }
 
-    return withCors(jsonResponse(responsePayload), env);
+    return withCors(jsonResponse(responsePayload), request, env);
   } catch (error) {
     console.error('Session get error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

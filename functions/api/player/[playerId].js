@@ -6,11 +6,11 @@ export async function onRequest(context) {
   const playerId = params.playerId;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'GET') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -28,7 +28,7 @@ export async function onRequest(context) {
     }
 
     if (!player) {
-      return withCors(errorResponse('Player not found', 404), env);
+      return withCors(errorResponse('Player not found', 404), request, env);
     }
 
     // Get player's progress journal
@@ -144,9 +144,9 @@ export async function onRequest(context) {
         achievedAt: p.achieved_at,
       })),
       recentSessions: formattedSessions,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Player API error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }

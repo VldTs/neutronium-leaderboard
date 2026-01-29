@@ -31,6 +31,11 @@ export async function onRequest(context) {
     return errorRedirect('Invalid link');
   }
 
+  if (!env.JWT_SECRET) {
+    console.error('JWT_SECRET environment variable is not set');
+    return errorRedirect('Server configuration error. Please contact support.');
+  }
+
   try {
     const supabase = createSupabaseClient(env);
 
@@ -130,11 +135,16 @@ export async function onRequest(context) {
     }
 
     // Create JWT token
-    const authToken = await createAuthToken(player, env.JWT_SECRET);
+    let authToken;
+    try {
+      authToken = await createAuthToken(player, env.JWT_SECRET);
+    } catch (jwtError) {
+      console.error('JWT creation failed:', jwtError.message);
+      return errorRedirect('Authentication error. Please contact support.');
+    }
     const cookie = createAuthCookie(authToken, env);
 
     console.log('Verify success - Player:', player.id, player.display_name);
-    console.log('Setting cookie:', cookie.substring(0, 50) + '...');
 
     // Redirect to return URL (if valid) or profile page
     let redirectUrl;
@@ -155,7 +165,7 @@ export async function onRequest(context) {
       },
     });
   } catch (error) {
-    console.error('Verify error:', error);
-    return errorRedirect('Something went wrong. Please try again.');
+    console.error('Verify error:', error.name, error.message, error.stack);
+    return errorRedirect(`Something went wrong: ${error.message || 'Unknown error'}. Please try again.`);
   }
 }

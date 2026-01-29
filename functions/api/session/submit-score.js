@@ -5,11 +5,11 @@ export async function onRequest(context) {
   const { env, request } = context;
 
   if (request.method === 'OPTIONS') {
-    return handleCors(env);
+    return handleCors(request, env);
   }
 
   if (request.method !== 'POST') {
-    return withCors(errorResponse('Method not allowed', 405), env);
+    return withCors(errorResponse('Method not allowed', 405), request, env);
   }
 
   try {
@@ -19,19 +19,19 @@ export async function onRequest(context) {
 
     // Validate required fields
     if (!sessionId) {
-      return withCors(errorResponse('sessionId is required'), env);
+      return withCors(errorResponse('sessionId is required'), request, env);
     }
     if (!playerId) {
-      return withCors(errorResponse('playerId is required'), env);
+      return withCors(errorResponse('playerId is required'), request, env);
     }
     if (finalNn === undefined || finalNn === null) {
-      return withCors(errorResponse('finalNn is required'), env);
+      return withCors(errorResponse('finalNn is required'), request, env);
     }
 
     // Validate color if provided
     const validColors = ['gray', 'pink', 'purple', 'green'];
     if (color && !validColors.includes(color)) {
-      return withCors(errorResponse(`color must be one of: ${validColors.join(', ')}`), env);
+      return withCors(errorResponse(`color must be one of: ${validColors.join(', ')}`), request, env);
     }
 
     // Check if session exists and is active
@@ -42,11 +42,11 @@ export async function onRequest(context) {
       .single();
 
     if (sessionError || !session) {
-      return withCors(errorResponse('Session not found', 404), env);
+      return withCors(errorResponse('Session not found', 404), request, env);
     }
 
     if (session.status !== 'active') {
-      return withCors(errorResponse('Session is not active', 400), env);
+      return withCors(errorResponse('Session is not active', 400), request, env);
     }
 
     // Check if player is in the session
@@ -58,7 +58,7 @@ export async function onRequest(context) {
       .single();
 
     if (playerError || !sessionPlayer) {
-      return withCors(errorResponse('Player not in session', 404), env);
+      return withCors(errorResponse('Player not in session', 404), request, env);
     }
 
     // Update player's score
@@ -233,7 +233,7 @@ export async function onRequest(context) {
         message: nextSession
           ? `All scores submitted! Moving to Level ${nextLevel}`
           : 'All scores submitted! You completed all 13 levels!',
-      }), env);
+      }), request, env);
     }
 
     return withCors(jsonResponse({
@@ -243,9 +243,9 @@ export async function onRequest(context) {
       submittedCount,
       totalPlayers: allPlayers.length,
       message: `Score submitted (${submittedCount}/${allPlayers.length} players)`,
-    }), env);
+    }), request, env);
   } catch (error) {
     console.error('Submit score error:', error);
-    return withCors(errorResponse(error.message || 'Internal server error', 500), env);
+    return withCors(errorResponse(error.message || 'Internal server error', 500), request, env);
   }
 }
