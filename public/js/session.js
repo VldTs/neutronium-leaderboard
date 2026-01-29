@@ -18,6 +18,7 @@ let sessionData = null;
 let pollInterval = null;
 let isGuest = true;
 let previousSessionLevel = null;
+let referenceScores = null;
 
 /**
  * Initialize the session page
@@ -292,7 +293,10 @@ function showMyColor(color) {
  */
 async function loadSession() {
   try {
-    const response = await fetch(`/api/session/${sessionId}`);
+    const url = currentPlayerId
+      ? `/api/session/${sessionId}?playerId=${encodeURIComponent(currentPlayerId)}`
+      : `/api/session/${sessionId}`;
+    const response = await fetch(url);
 
     if (response.status === 404) {
       showNotFound();
@@ -318,6 +322,11 @@ async function loadSession() {
       stopPolling();
       showGameComplete();
       return;
+    }
+
+    // Capture reference scores if returned
+    if (apiData.referenceScores) {
+      referenceScores = apiData.referenceScores;
     }
 
     // Transform API response to expected format
@@ -399,6 +408,12 @@ function renderSession() {
   statusBadge.textContent = sessionData.status.charAt(0).toUpperCase() + sessionData.status.slice(1);
   statusBadge.className = `badge ${sessionData.status === 'active' ? 'badge-host' : 'badge-you'}`;
 
+  // Update player count
+  const playerCountEl = document.getElementById('session-player-count');
+  if (playerCountEl) {
+    playerCountEl.textContent = `${sessionData.players.length} player${sessionData.players.length !== 1 ? 's' : ''}`;
+  }
+
   // Render players
   renderPlayers();
 
@@ -407,11 +422,14 @@ function renderSession() {
   const totalPlayers = sessionData.players.length;
   renderSubmissionProgress(submittedCount, totalPlayers);
 
-  // Update end votes
+  // Update end votes (hidden span for compatibility)
   if (sessionData.endVotes) {
     document.getElementById('end-votes').textContent =
       `${sessionData.endVotes.current}/${sessionData.endVotes.required}`;
   }
+
+  // Render vote dots
+  renderVoteDots();
 
   // Check if current player has voted
   const myPlayer = sessionData.players.find(p => p.id === currentPlayerId);
@@ -427,14 +445,18 @@ function renderSession() {
     stopPolling();
   }
 
+  // Render reference scores
+  renderReferenceScores();
+
   // Pre-fill score if available
   if (myPlayer) {
     if (myPlayer.color) {
       showMyColor(myPlayer.color);
     }
-    if (myPlayer.startingNn !== null && myPlayer.startingNn !== undefined) {
-      document.getElementById('my-starting-nn').value = myPlayer.startingNn;
-    }
+    const hasPrevBest = referenceScores?.previousLevelBest != null && referenceScores.previousLevelBest > 0;
+    const hasExplicitStarting = myPlayer.startingNn != null && myPlayer.startingNn > 0;
+    const startingValue = hasExplicitStarting ? myPlayer.startingNn : (hasPrevBest ? referenceScores.previousLevelBest : 0);
+    setStartingNnDisplay(startingValue);
     if (myPlayer.finalNn !== null && myPlayer.finalNn !== undefined) {
       document.getElementById('my-final-nn').value = myPlayer.finalNn;
       // Show submitted message and update button
@@ -487,7 +509,7 @@ function renderSubmissionProgress(submitted, total) {
 }
 
 /**
- * Render players list
+ * Render players list (v2 with color bars)
  */
 function renderPlayers() {
   if (!sessionData?.players) return;
@@ -495,14 +517,20 @@ function renderPlayers() {
   playersList.innerHTML = sessionData.players.map(player => {
     const isMe = player.id === currentPlayerId;
     const isHost = player.isHost;
-    const avatarColor = player.color ? getColorHex(player.color) : 'var(--color-accent)';
+    const barColor = player.color ? getColorHex(player.color) : 'var(--color-accent)';
     const hasScore = player.finalNn !== null;
 
+    const statusIcons = [];
+    if (hasScore) {
+      statusIcons.push('<div class="status-icon status-icon-scored">&#10003;</div>');
+    }
+    if (player.votedEnd) {
+      statusIcons.push('<div class="status-icon status-icon-voted">&#9632;</div>');
+    }
+
     return `
-      <div class="player-card ${isMe ? 'player-card-me' : ''}">
-        <div class="player-avatar" style="background: ${avatarColor};">
-          ${player.name.charAt(0).toUpperCase()}
-        </div>
+      <div class="player-card-v2 ${isMe ? 'player-card-me' : ''}">
+        <div class="player-color-bar" style="background: ${barColor};"></div>
         <div class="player-info">
           <div class="player-name">
             ${escapeHtml(player.name)}
@@ -510,13 +538,66 @@ function renderPlayers() {
             ${isHost ? '<span class="badge badge-host ml-sm">Host</span>' : ''}
           </div>
           <div class="player-meta">
-            ${hasScore ? `<span class="nn-value">${player.finalNn}</span>` : '<span class="text-muted">Waiting for score...</span>'}
-            ${player.votedEnd ? '<span class="player-status-ready">Ready</span>' : ''}
+            ${hasScore ? `<span class="nn-value">${player.finalNn}</span>` : '<span style="font-style: italic;">Waiting for score...</span>'}
           </div>
         </div>
-        ${hasScore ? '<div class="player-check">&#10003;</div>' : ''}
+        ${statusIcons.length ? `<div class="player-status-icons">${statusIcons.join('')}</div>` : ''}
       </div>
     `;
+  }).join('');
+}
+
+/**
+ * Set starting Nn read-only display
+ */
+function setStartingNnDisplay(value) {
+  const el = document.getElementById('my-starting-nn');
+  if (!el) return;
+  el.dataset.value = value;
+  const span = el.querySelector('.score-display-value');
+  if (span) {
+    span.textContent = value > 0 ? value : '—';
+    span.classList.toggle('has-value', value > 0);
+  }
+}
+
+/**
+ * Render reference scores bar (only "Your best at this level")
+ * Previous-level best is shown as a hint on the Starting Nn input instead.
+ */
+function renderReferenceScores() {
+  const container = document.getElementById('reference-scores');
+  if (!container) return;
+
+  if (referenceScores?.currentLevelBest !== null && referenceScores?.currentLevelBest !== undefined) {
+    container.innerHTML = `<span class="reference-score-item">Your best at this level: <span class="nn-value">${referenceScores.currentLevelBest}</span></span>`;
+    container.classList.remove('hidden');
+  } else {
+    container.classList.add('hidden');
+  }
+
+  // Show hint on Starting Nn when auto-filled from previous level
+  const hint = document.getElementById('starting-nn-hint');
+  if (hint && referenceScores?.previousLevelBest !== null && referenceScores?.previousLevelBest !== undefined) {
+    const prevLevel = (sessionData?.universeLevel || 1) - 1;
+    hint.textContent = `from Level ${prevLevel}`;
+    hint.classList.remove('hidden');
+  }
+}
+
+/**
+ * Render vote dots for end game section
+ */
+function renderVoteDots() {
+  const container = document.getElementById('vote-dots');
+  if (!container || !sessionData?.players) return;
+
+  container.innerHTML = sessionData.players.map(player => {
+    const initial = player.name.charAt(0).toUpperCase();
+    const voted = player.votedEnd;
+    const borderColor = player.color ? getColorHex(player.color) : 'var(--color-border)';
+
+    return `<div class="vote-dot ${voted ? 'vote-dot-voted' : ''}" style="border-color: ${voted ? '' : borderColor};" title="${escapeHtml(player.name)}${voted ? ' (voted)' : ''}">${voted ? '&#10003;' : initial}</div>`;
   }).join('');
 }
 
@@ -538,7 +619,7 @@ function getColorHex(color) {
  */
 async function submitScore() {
   const color = document.getElementById('my-color').value || null;
-  const startingNn = parseInt(document.getElementById('my-starting-nn').value) || 0;
+  const startingNn = parseInt(document.getElementById('my-starting-nn').dataset.value) || 0;
   const finalNn = parseInt(document.getElementById('my-final-nn').value);
 
   if (isNaN(finalNn) || finalNn < 0) {
@@ -776,9 +857,11 @@ async function voteEndGame() {
         showResults();
         stopPolling();
       } else {
-        // Update vote count
+        // Update vote count and re-render dots
         document.getElementById('end-votes').textContent =
           `${data.votedCount}/${data.totalPlayers}`;
+        // Refresh session to get updated vote states
+        await loadSession();
       }
     } else {
       alert(data.error || 'Failed to submit vote');
@@ -921,8 +1004,29 @@ function setupHeaderScroll() {
   }, { passive: true });
 }
 
+/**
+ * Calculate and apply padding for sticky score input on mobile
+ */
+function setupStickyPadding() {
+  const scoreInput = document.getElementById('score-input');
+  if (!scoreInput || window.innerWidth >= 769) return;
+
+  const updatePadding = () => {
+    const height = scoreInput.offsetHeight;
+    document.body.style.setProperty('--session-sticky-height', `${height}px`);
+  };
+
+  updatePadding();
+  window.addEventListener('resize', updatePadding);
+
+  // Re-calc after score section visibility changes
+  const observer = new MutationObserver(updatePadding);
+  observer.observe(scoreInput, { attributes: true, attributeFilter: ['class'] });
+}
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   init();
   setupHeaderScroll();
+  setupStickyPadding();
 });

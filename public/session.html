@@ -9,7 +9,7 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0a0e17">
 </head>
-<body>
+<body class="session-page">
   <header class="header">
     <div class="container header-content">
       <a href="/" class="logo">
@@ -26,15 +26,12 @@
 
   <main class="container">
     <!-- Session Header -->
-    <section id="session-header" class="card mt-lg">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <h2>Universe Level <span id="session-level">-</span></h2>
-          <p class="text-muted">Box: <span id="session-box">-</span></p>
-        </div>
-        <div>
-          <span id="session-status" class="badge badge-host">Active</span>
-        </div>
+    <section id="session-header" class="session-header-redesign mt-lg">
+      <div class="session-level-display">Level <span id="session-level">-</span></div>
+      <div class="session-meta-line">
+        <span>Box: <span id="session-box">-</span></span>
+        <span id="session-status" class="badge badge-host">Active</span>
+        <span id="session-player-count"></span>
       </div>
     </section>
 
@@ -88,39 +85,52 @@
       </section>
 
       <!-- Your Score Input (if in session) -->
-      <section id="score-input" class="card mt-lg">
-        <div class="score-header mb-md">
-          <h3 class="card-title">Your Score</h3>
-          <div id="my-color-indicator" class="my-color-indicator"></div>
-        </div>
-        <input type="hidden" id="my-color" value="">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-          <div class="form-group">
-            <label class="form-label" for="my-starting-nn">Starting Nn</label>
-            <input type="number" id="my-starting-nn" class="form-input" min="0" placeholder="0">
+      <div id="score-input" class="score-input-sticky mt-lg">
+        <section class="card">
+          <div class="score-header mb-md">
+            <h3 class="card-title">Your Score</h3>
+            <div id="my-color-indicator" class="my-color-indicator"></div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="my-final-nn">Final Nn</label>
-            <input type="number" id="my-final-nn" class="form-input" min="0" placeholder="0">
+          <input type="hidden" id="my-color" value="">
+          <div id="reference-scores" class="reference-scores hidden">
+            <!-- Filled by JS -->
           </div>
-        </div>
-        <button type="button" id="btn-submit-score" class="btn btn-primary" style="width: 100%;">
-          Submit Score
-        </button>
-        <p id="score-submitted-msg" class="text-center text-muted mt-md hidden">
-          Score submitted! You can update it anytime before the game ends.
-        </p>
-      </section>
+          <div class="score-grid">
+            <div class="form-group">
+              <label class="form-label">Starting Nn</label>
+              <div id="my-starting-nn" class="score-display" data-value="0">
+                <span class="score-display-value">—</span>
+              </div>
+              <span id="starting-nn-hint" class="form-hint hidden"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="my-final-nn">Final Nn</label>
+              <input type="number" id="my-final-nn" class="score-input-lg score-input-final" inputmode="numeric" pattern="[0-9]*" min="0" placeholder="0">
+            </div>
+          </div>
+          <button type="button" id="btn-submit-score" class="btn btn-primary btn-lg" style="width: 100%;">
+            Submit Score
+          </button>
+          <p id="score-submitted-msg" class="text-center text-muted mt-md hidden">
+            Score submitted! You can update it anytime before the game ends.
+          </p>
+        </section>
+      </div>
 
       <!-- End Game Section -->
       <section class="card mt-lg">
-        <h3 class="card-title mb-md">End Game</h3>
-        <p class="text-muted mb-md">
-          All players must vote to end the game. Current votes: <strong id="end-votes">0/0</strong>
-        </p>
-        <button type="button" id="btn-end-game" class="btn btn-secondary" style="width: 100%;">
-          Vote to End Game
-        </button>
+        <div class="end-game-section">
+          <div class="end-game-info">
+            <h3 class="card-title">End Game</h3>
+            <div id="vote-dots" class="vote-dots">
+              <!-- Vote dots rendered by JS -->
+            </div>
+          </div>
+          <button type="button" id="btn-end-game" class="btn btn-secondary btn-lg">
+            Vote to End
+          </button>
+        </div>
+        <span id="end-votes" class="hidden">0/0</span>
       </section>
     </div>
 

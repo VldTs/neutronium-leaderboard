@@ -53,6 +53,47 @@ export async function onRequest(context) {
     const playersVotedEnd = sessionPlayers.filter(sp => sp.voted_end).length;
     const playersSubmittedScore = sessionPlayers.filter(sp => sp.final_nn !== null).length;
 
+    // Fetch reference scores from progress_journal if playerId provided
+    const url = new URL(request.url);
+    const playerId = url.searchParams.get('playerId');
+    let refScores = null;
+
+    if (playerId && session.universe_level) {
+      const level = session.universe_level;
+      const queries = [];
+
+      // Best score from previous level (N-1)
+      if (level > 1) {
+        queries.push(
+          supabase
+            .from('progress_journal')
+            .select('best_nn')
+            .eq('player_id', playerId)
+            .eq('universe_level', level - 1)
+            .single()
+        );
+      } else {
+        queries.push(Promise.resolve({ data: null }));
+      }
+
+      // Best score at current level (from previous games)
+      queries.push(
+        supabase
+          .from('progress_journal')
+          .select('best_nn')
+          .eq('player_id', playerId)
+          .eq('universe_level', level)
+          .single()
+      );
+
+      const [prevResult, currResult] = await Promise.all(queries);
+
+      refScores = {
+        previousLevelBest: prevResult.data?.best_nn ?? null,
+        currentLevelBest: currResult.data?.best_nn ?? null,
+      };
+    }
+
     // Check for next session if this one is completed
     let nextSession = null;
     if (session.status === 'completed') {
@@ -76,7 +117,7 @@ export async function onRequest(context) {
       }
     }
 
-    return withCors(jsonResponse({
+    const responsePayload = {
       session: {
         ...session,
         players: sessionPlayers,
@@ -89,7 +130,13 @@ export async function onRequest(context) {
         allSubmittedScore: totalPlayers > 0 && playersSubmittedScore === totalPlayers,
       },
       nextSession,
-    }), env);
+    };
+
+    if (refScores) {
+      responsePayload.referenceScores = refScores;
+    }
+
+    return withCors(jsonResponse(responsePayload), env);
   } catch (error) {
     console.error('Session get error:', error);
     return withCors(errorResponse(error.message || 'Internal server error', 500), env);
